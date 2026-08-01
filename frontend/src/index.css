@@ -1,0 +1,108 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+
+  --bg: #F8FAFC;
+  --card: #FFFFFF;
+  --border: #E2E8F0;
+
+  --fg: #0F172A;
+  --muted: #64748B;
+
+  --primary: #0EA5E9;
+  --accent: #38BDF8;
+
+  --shadow-color: rgba(14,165,233,.18);
+}
+
+html.dark {
+  color-scheme: dark;
+
+  --bg: #020617;
+  --card: #111827;
+  --border: #1E293B;
+
+  --fg: #F8FAFC;
+  --muted: #94A3B8;
+
+  --primary: #38BDF8;
+  --accent: #7DD3FC;
+
+  --shadow-color: rgba(56,189,248,.22);
+}
+
+body {
+  min-height: 100vh;
+  background-color: var(--bg);
+  color: var(--fg);
+  font-family: Inter, system-ui, sans-serif;
+  antialiased: auto;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+html.light body {
+  background-image:
+    radial-gradient(circle at top left,
+      rgba(56,189,248,.10),
+      transparent 35%),
+    radial-gradient(circle at bottom right,
+      rgba(14,165,233,.08),
+      transparent 35%),
+    linear-gradient(
+      135deg,
+      #ffffff 0%,
+      #f8fafc 55%,
+      #edf9ff 100%
+    );
+}
+html.dark body {
+  background-image:
+      radial-gradient(circle at top left,
+      rgba(56,189,248,.14),
+      transparent 30%),
+      radial-gradient(circle at bottom right,
+      rgba(14,165,233,.10),
+      transparent 30%),
+      linear-gradient(
+      135deg,
+      #020617 0%,
+      #0F172A 45%,
+      #111827 100%);
+}
+@layer utilities {
+  .bg-background { background-color: var(--bg); }
+  .bg-card { background-color: var(--card); }
+  .border-border { border-color: var(--border); }
+  .text-foreground { color: var(--fg); }
+  .text-muted-foreground { color: var(--muted); }
+  .text-primary { color: var(--primary); }
+  .text-accent { color: var(--accent); }
+  .bg-primary { background-color: var(--primary); }
+  .bg-accent { background-color: var(--accent); }
+  .shadow-glow { box-shadow: 0 25px 80px var(--shadow-color); }
+}
+
+.glow-blue{
+box-shadow:
+0 0 25px rgba(56,189,248,.25),
+0 0 60px rgba(14,165,233,.15);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+::selection{
+    background:#06B6D4;
+    color:white;
+}
