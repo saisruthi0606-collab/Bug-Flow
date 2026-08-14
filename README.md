@@ -127,10 +127,6 @@ Verified
 Closed
 
 
-
-Sure amma ❤️ Here is the **same content in clean plain text/Markdown form**, without the broken formatting and unnecessary escape characters. You can directly paste this into your `README.md`.
-
-````markdown
 # 🤖 Intelligent Defect Analysis
 
 The system introduces an intelligent layer on top of traditional defect tracking.
