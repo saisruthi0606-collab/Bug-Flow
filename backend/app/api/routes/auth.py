@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from ...db.database import get_db
@@ -31,6 +31,8 @@ def login(user: UserLogin, db: Session = Depends(get_db)):
     db_user = db.query(User).filter(User.email == str(user.email)).first()
     if not db_user or not verify_password(user.password, db_user.password_hash):
         raise HTTPException(status_code=401, detail="Invalid credentials")
+    db_user.last_login_at = datetime.now(timezone.utc)
+    db.commit()
     access_token_expires = timedelta(minutes=60 * 24)
     access_token = create_access_token(data={"sub": db_user.email}, expires_delta=access_token_expires)
     return {"access_token": access_token, "token_type": "bearer"}
@@ -39,3 +41,5 @@ def login(user: UserLogin, db: Session = Depends(get_db)):
 @router.get("/me", response_model=UserOut)
 def get_me(current_user: User = Depends(get_current_user)):
     return current_user
+
+

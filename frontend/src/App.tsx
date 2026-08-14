@@ -11,6 +11,7 @@ import IssueDetailPage from './pages/IssueDetailPage'
 import ProfilePage from './pages/ProfilePage'
 import AnalyticsPage from './pages/AnalyticsPage'
 import SettingsPage from './pages/SettingsPage'
+import SprintsPage from './pages/SprintsPage'
 import NotFoundPage from './pages/NotFoundPage'
 import { api, clearAuthToken, getAuthToken } from './lib/api'
 
@@ -45,8 +46,10 @@ function App() {
       <Route path="/dashboard" element={<ProtectedRoute><DashboardPage user={user} /></ProtectedRoute>} />
       <Route path="/projects" element={<ProtectedRoute><ProjectsPage /></ProtectedRoute>} />
       <Route path="/issues" element={<ProtectedRoute><IssuesPage /></ProtectedRoute>} />
+      <Route path="/sprints" element={<ProtectedRoute><SprintsPage /></ProtectedRoute>} />
       <Route path="/issues/new" element={<ProtectedRoute><CreateIssuePage /></ProtectedRoute>} />
       <Route path="/issues/:id" element={<ProtectedRoute><IssueDetailPage /></ProtectedRoute>} />
+      <Route path="/issues/:id/edit" element={<ProtectedRoute><IssueDetailPage /></ProtectedRoute>} />
       <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
       <Route path="/analytics" element={<ProtectedRoute><AnalyticsPage /></ProtectedRoute>} />
       <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
@@ -56,3 +59,4 @@ function App() {
 }
 
 export default App
+

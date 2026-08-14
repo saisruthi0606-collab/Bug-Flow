@@ -13,7 +13,14 @@ type DashboardData = {
   critical_issues: number
   issue_status: Array<{ status: string; count: number }>
   priority_distribution: Array<{ priority: string; count: number }>
+  severity_distribution: Array<{ severity: string; count: number }>
+  sprint_summary: Array<{ id: number; name: string; issue_count: number; progress: number }>
+  recent_activity: Array<{ id:number; issue_id:number; action:string; details?:string; created_at:string }>
+  duplicate_detection: { flagged_issues:number; total_issues:number }
   bug_trends: Array<{ date: string; count: number }>
+  ai_health_score?: number
+  ai_report?: { summary: string; risk_level: string; insights: string[]; recommendations: string[] }
+  similar_issues?: Array<{ issue_id:number; title:string; similar_issue_id:number; similar_issue_title:string; similarity:number }>
 }
 
 export default function DashboardPage({ user }: { user: any }) {
@@ -30,6 +37,9 @@ export default function DashboardPage({ user }: { user: any }) {
   const lowPriority = data?.priority_distribution.find((item) => item.priority === 'Low')?.count ?? 0
 
   const trendRows = useMemo(() => data?.bug_trends ?? [], [data])
+  const aiHealthScore = data?.ai_health_score ?? 0
+  const aiReport = data?.ai_report ?? { summary: 'No AI report available.', risk_level: 'Low', insights: [], recommendations: [] }
+  const similarIssues = data?.similar_issues ?? []
 
   if (isLoading) {
     return (
@@ -86,6 +96,12 @@ export default function DashboardPage({ user }: { user: any }) {
         </div>
       </div>
 
+      <div className="mt-8 grid gap-6 lg:grid-cols-3">
+        <section className="rounded-3xl border border-border bg-card p-6 shadow-glow"><h2 className="font-semibold text-foreground">Bugs by Severity</h2><div className="mt-4 space-y-2">{data?.severity_distribution.map(item => <div key={item.severity} className="flex justify-between text-sm"><span>{item.severity}</span><span>{item.count}</span></div>)}</div></section>
+        <section className="rounded-3xl border border-border bg-card p-6 shadow-glow"><h2 className="font-semibold text-foreground">Sprint Progress</h2><div className="mt-4 space-y-3">{data?.sprint_summary.map(s => <div key={s.id}><div className="flex justify-between text-sm"><span>{s.name}</span><span>{s.progress}%</span></div><div className="mt-1 h-2 bg-border"><div className="h-2 bg-primary" style={{width:`${s.progress}%`}} /></div></div>)}</div></section>
+        <section className="rounded-3xl border border-border bg-card p-6 shadow-glow"><h2 className="font-semibold text-foreground">Recent Activity</h2><div className="mt-4 space-y-2">{data?.recent_activity.slice(0,4).map(a => <p key={a.id} className="text-sm"><span className="font-medium">{a.action}</span><span className="text-muted-foreground"> {a.details}</span></p>)}</div><p className="mt-4 text-sm text-muted-foreground">Duplicates flagged: {data?.duplicate_detection.flagged_issues ?? 0}</p></section>
+      </div>
+
       <div className="mt-8 grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
         <div className="rounded-3xl border border-border bg-card p-6 shadow-glow">
           <div className="flex items-center justify-between">
@@ -127,6 +143,34 @@ export default function DashboardPage({ user }: { user: any }) {
         </div>
       </div>
 
+      <div className="mt-8 grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
+        <section className="rounded-3xl border border-border bg-card p-6 shadow-glow">
+          <p className="text-sm uppercase tracking-[0.3em] text-muted-foreground">AI Health</p>
+          <div className="mt-4 flex items-center justify-between gap-4">
+            <div>
+              <div className="text-4xl font-semibold text-foreground">{aiHealthScore}</div>
+              <div className="text-sm text-muted-foreground">Health score</div>
+            </div>
+            <div className="rounded-full bg-primary/10 px-3 py-1 text-sm font-medium text-primary">{aiReport.risk_level}</div>
+          </div>
+          <p className="mt-4 text-sm text-muted-foreground">{aiReport.summary}</p>
+          <ul className="mt-4 space-y-2 text-sm">
+            {aiReport.insights.map((insight) => (
+              <li key={insight} className="rounded-xl border border-border bg-background p-3">{insight}</li>
+            ))}
+          </ul>
+        </section>
+
+        <section className="rounded-3xl border border-border bg-card p-6 shadow-glow">
+          <p className="text-sm uppercase tracking-[0.3em] text-muted-foreground">AI Guidance</p>
+          <ul className="mt-4 space-y-3 text-sm">
+            {aiReport.recommendations.map((recommendation) => (
+              <li key={recommendation} className="rounded-xl border border-border bg-background p-3">{recommendation}</li>
+            ))}
+          </ul>
+        </section>
+      </div>
+
       <div className="mt-8 rounded-3xl border border-border bg-card p-6 shadow-glow">
         <div className="flex items-center justify-between">
           <div>
@@ -144,6 +188,30 @@ export default function DashboardPage({ user }: { user: any }) {
           ))}
         </div>
       </div>
+
+      <div className="mt-8 rounded-3xl border border-border bg-card p-6 shadow-glow">
+        <p className="text-sm uppercase tracking-[0.3em] text-muted-foreground">Similar issues</p>
+        <h2 className="text-2xl font-semibold text-foreground">Top 5 near-duplicates</h2>
+        <div className="mt-4 space-y-3">
+          {similarIssues.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No near-duplicate issues detected.</p>
+          ) : (
+            similarIssues.map((entry) => (
+              <div key={`${entry.issue_id}-${entry.similar_issue_id}`} className="rounded-xl border border-border bg-background p-3 text-sm">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <div className="font-medium">{entry.title}</div>
+                    <div className="text-muted-foreground">Matches {entry.similar_issue_title}</div>
+                  </div>
+                  <div className="rounded-full bg-primary/10 px-2 py-1 text-xs text-primary">{entry.similarity}%</div>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
     </Layout>
   )
 }
+
+

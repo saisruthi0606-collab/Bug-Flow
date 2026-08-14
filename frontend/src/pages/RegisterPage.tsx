@@ -8,19 +8,28 @@ export default function RegisterPage() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
-  async function handleSubmit(e: FormEvent) {
-    e.preventDefault()
-    setError('')
-    setLoading(true)
-    try {
-      await api.post('/api/auth/register', form)
-      navigate('/login')
-    } catch {
-      setError('Unable to register')
-    } finally {
-      setLoading(false)
-    }
+ async function handleSubmit(e: FormEvent) {
+  e.preventDefault()
+  setError('')
+  setLoading(true)
+
+  try {
+    await api.post('/api/auth/register', form)
+    navigate('/login')
+  } catch (err: any) {
+    console.log(err)
+    console.log(err.response)
+    console.log(err.response?.data)
+
+    setError(
+      err.response?.data?.detail
+        ? JSON.stringify(err.response.data.detail)
+        : 'Unable to register'
+    )
+  } finally {
+    setLoading(false)
   }
+}
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">

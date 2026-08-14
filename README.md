@@ -1,55 +1,24 @@
 # BugFlow
 
-BugFlow is a full-stack software issue tracking platform built with FastAPI, React, TypeScript, Tailwind CSS, and SQLite.
+BugFlow is an AI-powered bug lifecycle management platform built with FastAPI, React, TypeScript, Tailwind CSS, and SQLite.
 
-## Features
-- JWT authentication and role-based access
-- Project management
-- Issue management with search, filters, and pagination
-- Responsive modern dashboard
+## Run
 
-## Backend
-
-### Install
-```bash
+```powershell
 cd backend
-python -m venv .venv
-.venv\Scripts\activate
-pip install -r requirements.txt
+..\.venv\Scripts\pip install -r requirements.txt
+..\.venv\Scripts\alembic -c alembic.ini upgrade head
+..\.venv\Scripts\uvicorn app.main:app --reload --port 8000
 ```
 
-### Run
-```bash
-uvicorn app.main:app --reload --port 8000
-```
-
-### Migrations
-```bash
-alembic upgrade head
-```
-
-## Frontend
-
-### Install
-```bash
+```powershell
 cd frontend
 npm install
-```
-
-### Run
-```bash
 npm run dev
 ```
 
-## API URLs
-- http://localhost:8000/health
-- http://localhost:8000/api/auth/register
-- http://localhost:8000/api/auth/login
-- http://localhost:8000/api/projects
-- http://localhost:8000/api/issues
+Open `http://localhost:3000`; API health is at `http://localhost:8000/health`.
 
-## Folder Structure
-- backend/app
-- frontend/src
-- docs
-- scripts
+## Milestone 2
+
+Severity and workflow enforcement, comments, attachments, activities, sprint planning, stored AI triage, local duplicate detection, advanced issue filtering, and expanded dashboard metrics are integrated into the existing platform.

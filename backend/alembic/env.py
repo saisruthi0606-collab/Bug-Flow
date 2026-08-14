@@ -9,9 +9,11 @@ from app.db.database import Base
 from app.models.user import User
 from app.models.project import Project
 from app.models.issue import Issue
+from app.models.sprint import Sprint
+from app.models.collaboration import Comment, Attachment, Activity, AIRecommendation
 
 config = context.config
-if config.config_file_name is not None:
+if config.config_file_name is not None and config.get_section("formatters") is not None:
     fileConfig(config.config_file_name)
 
 target_metadata = Base.metadata
@@ -40,3 +42,6 @@ if context.is_offline_mode():
     run_migrations_offline()
 else:
     run_migrations_online()
+
+
+

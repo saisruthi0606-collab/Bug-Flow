@@ -1,42 +1,12 @@
-export interface User {
-  id: number
-  full_name: string
-  email: string
-  role: string
-  is_active: boolean
-}
-
-export interface Project {
-  id: number
-  project_name: string
-  description?: string | null
-  created_by: number
-  created_at: string
-}
-
-export interface Issue {
-  id: number
-  title: string
-  description?: string | null
-  status: string
-  priority: string
-  severity: string
-  assigned_to?: number | null
-  reporter: number
-  project_id: number
-  created_at: string
-  updated_at: string
-}
-
-export interface AiEnhanceResponse {
-  enhanced_description: string
-  severity: string
-  priority: string
-  category: string
-  component: string
-  root_cause: string
-  resolution: string
-  test_cases: string
-  estimated_time: string
-  confidence: string
-}
+export interface User { id:number; full_name:string; email:string; role:string; is_active:boolean }
+export interface Project { id:number; project_name:string; description?:string|null; created_by:number; created_at:string }
+export interface Sprint { id:number; name:string; goal?:string|null; start_date:string; end_date:string; status:string; project_id:number; created_by:number; issue_count:number }
+export interface Issue { id:number; title:string; description?:string|null; status:string; priority:string; severity:string; category?:string|null; assigned_to?:number|null; reporter:number; reporter_name?:string|null; assignee_name?:string|null; project_id:number; project_name?:string|null; sprint_id?:number|null; sprint_name?:string|null; attachment_count?:number; comment_count?:number; ai_score?:number|null; is_possible_duplicate:boolean; created_at:string; updated_at:string }
+export interface Comment { id:number; issue_id:number; author_id:number; author_name?:string; body:string; created_at:string; updated_at:string }
+export interface Attachment { id:number; issue_id:number; uploaded_by:number; uploader_name?:string; original_filename:string; content_type?:string; size_bytes:number; created_at:string }
+export interface Activity { id:number; issue_id:number; actor_id?:number; actor_name?:string; action:string; details?:string; created_at:string }
+export interface AiEnhanceResponse { enhanced_description:string; severity:string; priority:string; category:string; component:string; root_cause:string; resolution:string; test_cases:string; estimated_time:string; confidence:string }
+export interface MissingInfoWarning { field:string; message:string }
+export interface AiInvestigation { category:string; root_causes:string[]; debugging_steps:string[]; modules:string[]; fix_direction:string; next_action:string; disclaimer:string; similar_issues?: Array<{ id:number; title:string; similarity:number }> }
+export interface Recommendation { id:number; issue_id:number; category?:string|null; severity?:string|null; priority?:string|null; root_cause?:string|null; suggested_resolution?:string|null; confidence_score:number; reasoning?:string|null; created_at:string }
+export interface UserListItem { id:number; full_name:string; email:string; role:string }

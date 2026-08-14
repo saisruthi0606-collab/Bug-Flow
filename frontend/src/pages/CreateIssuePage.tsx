@@ -1,175 +1,294 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import Layout from '../components/Layout'
 import { api } from '../lib/api'
-
-type AiResponse = {
-  enhanced_description: string
-  severity: string
-  priority: string
-  category: string
-  component: string
-  root_cause: string
-  resolution: string
-  test_cases: string
-  estimated_time: string
-  confidence: string
-}
-
-type Project = {
-  id: number
-  project_name: string
-}
+import type { Project, Sprint, UserListItem } from '../lib/types'
 
 export default function CreateIssuePage() {
-  const navigate = useNavigate()
-  const queryClient = useQueryClient()
-  const [form, setForm] = useState({ title: '', description: '', status: 'Open', priority: 'Medium', severity: 'Low', project_id: 0 })
-  const [aiResult, setAiResult] = useState<AiResponse | null>(null)
-  const [aiLoading, setAiLoading] = useState(false)
-  const [aiError, setAiError] = useState('')
+  const nav = useNavigate()
+  const qc = useQueryClient()
+  const [form, setForm] = useState<any>({
+    title: '',
+    description: '',
+    priority: 'Medium',
+    severity: 'Medium',
+    project_id: 0,
+    sprint_id: '',
+    assigned_to: '',
+    confirm_duplicate: false,
+  })
+  const [duplicates, setDuplicates] = useState<any[]>([])
+  const [error, setError] = useState('')
+  const [ai, setAi] = useState<any>(null)
+  const [attachments, setAttachments] = useState<File[]>([])
+  const [missingInfo, setMissingInfo] = useState<any[]>([])
+  const dropRef = useRef<HTMLDivElement | null>(null)
 
-  const { data: projects = [], isLoading: projectsLoading } = useQuery<Project[]>({
+  const { data: projects = [] } = useQuery<Project[]>({
     queryKey: ['projects'],
-    queryFn: async () => {
-      const response = await api.get<Project[]>('/api/projects')
-      return response.data
-    },
+    queryFn: async () => (await api.get('/api/projects')).data,
+  })
+  const { data: sprints = [] } = useQuery<Sprint[]>({
+    queryKey: ['sprints'],
+    queryFn: async () => (await api.get('/api/sprints')).data,
+  })
+  const { data: users = [] } = useQuery<UserListItem[]>({
+    queryKey: ['users'],
+    queryFn: async () => (await api.get('/api/users')).data,
   })
 
   useEffect(() => {
-    if (!form.project_id && projects.length > 0) {
-      setForm((current) => ({ ...current, project_id: projects[0].id }))
-    }
+    if (!form.project_id && projects[0]) setForm((x: any) => ({ ...x, project_id: projects[0].id }))
   }, [projects, form.project_id])
 
-  const handleCreate = async (e: FormEvent) => {
-    e.preventDefault()
-    await api.post('/api/issues', form)
-    await queryClient.invalidateQueries({ queryKey: ['issues'] })
-    await queryClient.invalidateQueries({ queryKey: ['dashboard'] })
-    await queryClient.invalidateQueries({ queryKey: ['analytics'] })
-    navigate('/issues')
-  }
-
-  const handleEnhance = async () => {
-    if (!form.description.trim()) {
-      setAiError('Add a description to improve first.')
-      return
-    }
-
-    setAiError('')
-    setAiLoading(true)
-
+  const checkDuplicates = async () => {
+    if (!form.title) return
     try {
-      const response = await api.post<AiResponse>('/api/ai/enhance', { description: form.description })
-      setAiResult(response.data)
-      setForm((current) => ({
-        ...current,
-        description: response.data.enhanced_description,
-        priority: response.data.priority,
-        severity: response.data.severity,
-      }))
-    } catch {
-      setAiError('Unable to enhance the issue description right now. Try again later.')
-    } finally {
-      setAiLoading(false)
+      const res = await api.post('/api/issues/duplicates-check', {
+        title: form.title,
+        description: form.description,
+        project_id: form.project_id,
+      })
+      setDuplicates(res.data || [])
+    } catch (e: any) {
+      // ignore transient errors for duplicate check
     }
   }
+
+  const checkMissingInfo = async () => {
+    if (!form.title) return
+    try {
+      const r = await api.post('/api/ai/missing-info', { title: form.title, description: form.description })
+      setMissingInfo(r.data.warnings || [])
+    } catch (e: any) {
+      setMissingInfo([])
+    }
+  }
+
+  const submit = async (e: FormEvent) => {
+    e.preventDefault()
+    setError('')
+    try {
+      const payload = { ...form, sprint_id: form.sprint_id || null, assigned_to: form.assigned_to || null }
+      const issueRes = await api.post('/api/issues', payload)
+      const issueId = issueRes.data.id
+
+      // upload attachments
+      for (const f of attachments) {
+        const fd = new FormData()
+        fd.append('file', f)
+        await api.post(`/api/issues/${issueId}/attachments`, fd, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        })
+      }
+
+      await qc.invalidateQueries({ queryKey: ['issues'] })
+      await qc.invalidateQueries({ queryKey: ['dashboard'] })
+      nav('/issues')
+    } catch (err: any) {
+      if (err?.response?.status === 409) {
+        setDuplicates(err.response.data.detail.duplicates || [])
+        setError('Possible duplicates found. Review and confirm to create.')
+      } else {
+        setError('Unable to create issue. Check input and try again.')
+      }
+    }
+  }
+
+  const enhance = async () => {
+    setError('')
+    try {
+      const r = await api.post('/api/ai/enhance', { description: form.description })
+      setAi(r.data)
+      setForm((x: any) => ({ ...x, description: r.data.enhanced_description, priority: r.data.priority, severity: r.data.severity, category: r.data.category }))
+    } catch (e: any) {
+      setError('AI enhancement failed. Try again.')
+    }
+  }
+
+  const onFiles = (files: FileList | null) => {
+    if (!files) return
+    const allowedRe = /\.(png|jpg|jpeg|pdf|txt|docx|zip)$/i
+    const maxSize = 10 * 1024 * 1024
+    const arr = Array.from(files).filter((f) => allowedRe.test(f.name) && f.size <= maxSize)
+    setAttachments((prev) => [...prev, ...arr])
+  }
+
+  // drag & drop handlers
+  useEffect(() => {
+    const el = dropRef.current
+    if (!el) return
+    const onDragOver = (e: DragEvent) => { e.preventDefault(); el.classList.add('ring-2', 'ring-dashed') }
+    const onDragLeave = () => { el.classList.remove('ring-2', 'ring-dashed') }
+    const onDrop = (e: DragEvent) => {
+      e.preventDefault()
+      el.classList.remove('ring-2', 'ring-dashed')
+      const dt = e.dataTransfer
+      if (dt?.files) onFiles(dt.files)
+    }
+    el.addEventListener('dragover', onDragOver)
+    el.addEventListener('dragleave', onDragLeave)
+    el.addEventListener('drop', onDrop)
+    return () => {
+      el.removeEventListener('dragover', onDragOver)
+      el.removeEventListener('dragleave', onDragLeave)
+      el.removeEventListener('drop', onDrop)
+    }
+  }, [dropRef.current])
 
   return (
     <Layout title="Create Issue">
-      <div className="grid gap-6 xl:grid-cols-[1.4fr_0.8fr]">
-        <section className="rounded-3xl border border-border bg-card p-6 shadow-glow">
-          <div className="mb-6 flex items-center justify-between gap-4">
-            <div>
-              <h3 className="text-xl font-semibold text-foreground">New Issue</h3>
-              <p className="mt-2 text-sm text-muted-foreground">Draft a bug report with AI-enhanced description and priority guidance.</p>
-            </div>
-            <button type="button" onClick={handleEnhance} className="rounded-2xl bg-primary px-4 py-2 text-sm font-semibold text-foreground transition hover:bg-accent" disabled={aiLoading}>
-              {aiLoading ? 'Enhancing…' : 'Improve with AI'}
-            </button>
-          </div>
-          <form onSubmit={handleCreate} className="space-y-4">
-            <div className="grid gap-4 sm:grid-cols-2">
-              <input className="rounded-3xl border border-border bg-background px-4 py-3 text-foreground outline-none focus:border-primary" placeholder="Issue title" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} required />
-              <div className="rounded-3xl border border-border bg-background px-4 py-3 text-foreground">
-                <label className="block text-sm text-muted-foreground">Project</label>
-                <select className="mt-2 w-full bg-transparent text-foreground outline-none" value={form.project_id} onChange={(e) => setForm({ ...form, project_id: Number(e.target.value) })} required>
-                  <option value="">Select project</option>
-                  {projectsLoading ? <option>Loading projects…</option> : projects.map((project) => <option key={project.id} value={project.id}>{project.project_name}</option>)}
-                </select>
-              </div>
-            </div>
-            <textarea className="min-h-[220px] w-full rounded-3xl border border-border bg-background px-4 py-4 text-foreground outline-none transition focus:border-primary" placeholder="Describe the issue" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} required />
-            <div className="grid gap-4 md:grid-cols-3">
-              <label className="block rounded-3xl border border-border bg-background px-4 py-3">
-                <span className="block text-sm text-muted-foreground">Status</span>
-                <select className="mt-2 w-full bg-transparent text-foreground outline-none" value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}>
-                  <option value="Open">Open</option>
-                  <option value="In Progress">In Progress</option>
-                  <option value="Resolved">Resolved</option>
-                </select>
-              </label>
-              <label className="block rounded-3xl border border-border bg-background px-4 py-3">
-                <span className="block text-sm text-muted-foreground">Priority</span>
-                <select className="mt-2 w-full bg-transparent text-foreground outline-none" value={form.priority} onChange={(e) => setForm({ ...form, priority: e.target.value })}>
-                  <option value="Low">Low</option>
-                  <option value="Medium">Medium</option>
-                  <option value="High">High</option>
-                </select>
-              </label>
-              <label className="block rounded-3xl border border-border bg-background px-4 py-3">
-                <span className="block text-sm text-muted-foreground">Severity</span>
-                <select className="mt-2 w-full bg-transparent text-foreground outline-none" value={form.severity} onChange={(e) => setForm({ ...form, severity: e.target.value })}>
-                  <option value="Low">Low</option>
-                  <option value="Medium">Medium</option>
-                  <option value="High">High</option>
-                </select>
-              </label>
-            </div>
-            {aiError && <p className="text-sm text-rose-400">{aiError}</p>}
-            <button className="w-full rounded-3xl bg-primary px-5 py-4 text-sm font-semibold text-foreground transition hover:bg-accent">Create Issue</button>
-          </form>
-        </section>
+      <div className="grid gap-6 xl:grid-cols-[1fr_.65fr]">
+        <form onSubmit={submit} className="space-y-4 rounded-xl border border-border bg-card p-6">
+          <input
+            required
+            className="w-full rounded-xl border border-border bg-background p-3"
+            placeholder="Issue title"
+            value={form.title}
+            onBlur={() => { checkDuplicates(); checkMissingInfo() }}
+            onChange={(e) => setForm({ ...form, title: e.target.value })}
+          />
 
-        <aside className="space-y-6 rounded-3xl border border-border bg-card/80 p-6 shadow-glow">
-          <div className="rounded-3xl bg-background p-5">
-            <p className="text-sm uppercase tracking-[0.3em] text-accent/80">AI Assistant</p>
-            <h2 className="mt-3 text-xl font-semibold text-foreground">Issue intelligence</h2>
-            <p className="mt-2 text-sm text-muted-foreground">Refine the description, adjust priority and severity, and review root cause recommendations.</p>
+          <textarea
+            required
+            className="min-h-48 w-full rounded-xl border border-border bg-background p-3"
+            placeholder="Describe the issue"
+            value={form.description}
+            onBlur={() => { checkDuplicates(); checkMissingInfo() }}
+            onChange={(e) => setForm({ ...form, description: e.target.value })}
+          />
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            <select
+              className="rounded-xl border border-border bg-background p-3"
+              value={form.priority}
+              onChange={(e) => setForm({ ...form, priority: e.target.value })}
+            >
+              {['High', 'Medium', 'Low'].map((p) => (
+                <option key={p} value={p}>{p}</option>
+              ))}
+            </select>
+
+            <select
+              className="rounded-xl border border-border bg-background p-3"
+              value={form.severity}
+              onChange={(e) => setForm({ ...form, severity: e.target.value })}
+            >
+              {['Critical', 'High', 'Medium', 'Low'].map((s) => (
+                <option key={s} value={s}>{s}</option>
+              ))}
+            </select>
+
+            <select
+              className="rounded-xl border border-border bg-background p-3"
+              value={form.project_id}
+              onChange={(e) => setForm({ ...form, project_id: Number(e.target.value) })}
+            >
+              {projects.map((p) => (
+                <option key={p.id} value={p.id}>{p.project_name}</option>
+              ))}
+            </select>
+
+            <select
+              className="rounded-xl border border-border bg-background p-3"
+              value={form.sprint_id}
+              onChange={(e) => setForm({ ...form, sprint_id: e.target.value })}
+            >
+              <option value="">No sprint</option>
+              {sprints.filter((s) => s.project_id === form.project_id).map((s) => (
+                <option key={s.id} value={s.id}>{s.name}</option>
+              ))}
+            </select>
+
+            <select
+              className="rounded-xl border border-border bg-background p-3"
+              value={form.assigned_to}
+              onChange={(e) => setForm({ ...form, assigned_to: e.target.value })}
+            >
+              <option value="">Unassigned</option>
+              {users.filter((u) => u.role === 'Developer').map((u) => (
+                <option key={u.id} value={u.id}>{u.full_name} (Developer)</option>
+              ))}
+            </select>
           </div>
 
-          <div className="space-y-4 rounded-3xl border border-border bg-background p-4">
-            <p className="text-sm uppercase tracking-[0.32em] text-muted-foreground">AI preview</p>
-            {aiResult ? (
-              <div className="space-y-4">
-                <div className="rounded-3xl bg-card p-4">
-                  <p className="text-sm text-muted-foreground">Enhanced description</p>
-                  <p className="mt-3 text-sm leading-6 text-foreground">{aiResult.enhanced_description}</p>
+          <label className="block">
+            <span className="text-sm text-muted-foreground">Attachments (png,jpg,jpeg,pdf,docx,txt,zip) — max 10MB each</span>
+            <div ref={dropRef} className="mt-2 rounded-md border border-border p-3">
+              <input type="file" multiple onChange={(e) => onFiles(e.target.files)} className="w-full" />
+              {attachments.length > 0 ? (
+                <div className="mt-2 space-y-1 text-sm">
+                  {attachments.map((f, i) => (
+                    <div key={i} className="flex items-center justify-between">
+                      <span>{f.name}</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-muted-foreground text-xs">{Math.round(f.size / 1024)} KB</span>
+                        <button type="button" className="text-rose-500 text-xs" onClick={() => setAttachments((prev) => prev.filter((_, idx) => idx !== i))}>Remove</button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-                <div className="grid gap-3">
-                  <div className="rounded-3xl bg-card p-4">
-                    <p className="text-sm text-muted-foreground">Root cause</p>
-                    <p className="mt-2 text-sm text-foreground">{aiResult.root_cause}</p>
+              ) : (
+                <p className="mt-2 text-sm text-muted-foreground">Drag & drop files here or click to select.</p>
+              )}
+            </div>
+          </label>
+
+          {missingInfo.length > 0 && (
+            <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 text-sm">
+              <div className="font-medium">Missing information</div>
+              <ul className="mt-2 space-y-1">
+                {missingInfo.map((w: any) => (
+                  <li key={w.field} className="text-amber-600">{w.message}</li>
+                ))}
+              </ul>
+              <p className="mt-2 text-xs text-muted-foreground">You can still create the issue and add details later.</p>
+            </div>
+          )}
+
+          {duplicates.length > 0 && (
+            <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 text-sm">
+              <div className="font-medium">Possible duplicates</div>
+              <div className="mt-2">
+                {duplicates.map((d: any) => (
+                  <div key={d.id} className="py-1">
+                    <a className="text-primary" href={`/issues/${d.id}`}>{d.title}</a>
+                    <div className="text-muted-foreground text-xs">Similarity: {Math.round(d.similarity * 100)}%</div>
                   </div>
-                  <div className="rounded-3xl bg-card p-4">
-                    <p className="text-sm text-muted-foreground">Resolution</p>
-                    <p className="mt-2 text-sm text-foreground">{aiResult.resolution}</p>
-                  </div>
-                </div>
-                <div className="grid gap-3 text-sm text-muted-foreground">
-                  <div className="flex items-center justify-between rounded-2xl bg-background px-4 py-3"><span>Category</span><span className="text-accent">{aiResult.category}</span></div>
-                  <div className="flex items-center justify-between rounded-2xl bg-background px-4 py-3"><span>Component</span><span className="text-accent">{aiResult.component}</span></div>
-                  <div className="flex items-center justify-between rounded-2xl bg-background px-4 py-3"><span>Confidence</span><span className="text-accent">{aiResult.confidence}</span></div>
-                  <div className="flex items-center justify-between rounded-2xl bg-background px-4 py-3"><span>ETA</span><span className="text-accent">{aiResult.estimated_time}</span></div>
-                </div>
+                ))}
               </div>
-            ) : (
-              <div className="rounded-3xl bg-background p-4 text-sm text-muted-foreground">Add a draft description and tap "Improve with AI" to preview suggestion details.</div>
-            )}
+              <label className="mt-2 flex items-center gap-2 text-sm">
+                <input type="checkbox" checked={form.confirm_duplicate} onChange={(e) => setForm({ ...form, confirm_duplicate: e.target.checked })} />
+                Create anyway
+              </label>
+            </div>
+          )}
+
+          {error && <p className="text-rose-500">{error}</p>}
+
+          <div className="flex items-center gap-3">
+            <button className="rounded-xl bg-primary px-5 py-3 font-semibold">Create Issue</button>
+            <button type="button" onClick={enhance} className="rounded-xl border border-border px-4 py-3">Improve with AI</button>
           </div>
+        </form>
+
+        <aside className="space-y-4 rounded-xl border border-border bg-card p-6">
+          <h3 className="text-lg font-semibold">AI Report</h3>
+          {ai ? (
+            <div className="space-y-3 text-sm">
+              <div><strong>Title suggestion:</strong> {ai.title || '—'}</div>
+              <div><strong>Category:</strong> {ai.category || '—'}</div>
+              <div><strong>Priority:</strong> {ai.priority || '—'}</div>
+              <div><strong>Severity:</strong> {ai.severity || '—'}</div>
+              <div><strong>Root cause:</strong> {ai.root_cause || '—'}</div>
+              <div><strong>Suggested fix:</strong> {ai.resolution || '—'}</div>
+              <div><strong>Confidence:</strong> {ai.confidence ?? '—'}</div>
+              <div className="pt-2"><strong>Full analysis:</strong><div className="rounded-md border border-border bg-background p-3 mt-2 text-sm whitespace-pre-wrap">{ai.analysis || ai.enhanced_description}</div></div>
+            </div>
+          ) : (
+            <p className="text-muted-foreground">Click "Improve with AI" to generate an AI report. The enhanced description will populate the description field when applied.</p>
+          )}
         </aside>
       </div>
     </Layout>
