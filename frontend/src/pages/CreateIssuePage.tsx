@@ -99,9 +99,17 @@ export default function CreateIssuePage() {
   const enhance = async () => {
     setError('')
     try {
-      const r = await api.post('/api/ai/enhance', { description: form.description })
+      const r = await api.post('/api/ai/enhance', { title: form.title, description: form.description })
       setAi(r.data)
-      setForm((x: any) => ({ ...x, description: r.data.enhanced_description, priority: r.data.priority, severity: r.data.severity, category: r.data.category }))
+      // Populate the enhanced description into the form so the user can review/edit it,
+      // but do NOT auto-submit. Keep all other fields intact.
+      setForm((x: any) => ({
+        ...x,
+        description: r.data.enhanced_description,
+        priority: r.data.priority,
+        severity: r.data.severity,
+        category: r.data.category,
+      }))
     } catch (e: any) {
       setError('AI enhancement failed. Try again.')
     }
@@ -284,6 +292,29 @@ export default function CreateIssuePage() {
               <div><strong>Root cause:</strong> {ai.root_cause || '—'}</div>
               <div><strong>Suggested fix:</strong> {ai.resolution || '—'}</div>
               <div><strong>Confidence:</strong> {ai.confidence ?? '—'}</div>
+
+              {ai.is_structured_report && (
+                <>
+                  <div className="pt-3 border-t border-border">
+                    <div className="font-semibold text-primary">AI-ENHANCED ISSUE</div>
+                    <div className="mt-2 rounded-md border border-border bg-background p-3 text-sm whitespace-pre-wrap">{ai.enhanced_description}</div>
+                  </div>
+
+                  <div className={ai.missing_information && ai.missing_information.length > 0 ? "rounded-xl border border-amber-500/40 bg-amber-500/10 p-3" : "rounded-xl border border-emerald-500/40 bg-emerald-500/10 p-3"}>
+                    <div className="font-medium">{ai.missing_information && ai.missing_information.length > 0 ? 'MISSING INFORMATION' : 'Missing Information'}</div>
+                    {ai.missing_information && ai.missing_information.length > 0 ? (
+                      <ul className="mt-2 space-y-1">
+                        {ai.missing_information.map((m: string, i: number) => (
+                          <li key={i} className="text-amber-600">- {m}</li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="mt-2 text-emerald-600">No critical information is missing.</p>
+                    )}
+                  </div>
+                </>
+              )}
+
               <div className="pt-2"><strong>Full analysis:</strong><div className="rounded-md border border-border bg-background p-3 mt-2 text-sm whitespace-pre-wrap">{ai.analysis || ai.enhanced_description}</div></div>
             </div>
           ) : (

@@ -67,7 +67,7 @@ def create_issue(issue: IssueCreate, db: Session = Depends(get_db), current_user
     candidates, embedding = find_duplicates(db.query(Issue).all(), issue.title, issue.description, issue.project_id)
     if candidates and not issue.confirm_duplicate:
         raise HTTPException(status_code=409, detail={"message": "Possible duplicate issues found", "duplicates": candidates})
-    analysis = get_ai_suggestions(f"{issue.title}. {issue.description or ''}")
+    analysis = get_ai_suggestions(issue.description or "", title=issue.title)
     duplicate_id = issue.duplicate_of_issue_id or (candidates[0]["id"] if candidates else None)
     db_issue = Issue(
         title=issue.title,

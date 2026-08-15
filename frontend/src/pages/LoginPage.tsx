@@ -31,7 +31,7 @@ export default function LoginPage() {
         <div className="space-y-3 text-center">
           <p className="text-sm uppercase tracking-[0.3em] text-primary/80">BugFlow</p>
           <h1 className="text-4xl font-semibold text-foreground">Welcome back</h1>
-          <p className="text-sm text-muted-foreground">Log in to access your AI-powered bug lifecycle dashboard.</p>
+          <p className="text-sm text-muted-foreground">Log in to access your AI-powered defect lifecycle dashboard.</p>
         </div>
         <form onSubmit={handleSubmit} className="space-y-5">
           <div className="space-y-2">

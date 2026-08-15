@@ -10,6 +10,7 @@ router = APIRouter()
 
 
 class AiRequest(BaseModel):
+    title: str | None = None
     description: str
     issue_id: int | None = None
 
@@ -32,11 +33,18 @@ class AiResponse(BaseModel):
     estimated_time: str
     confidence: str
     analysis: str | None = None
+    steps_to_reproduce: list[str] = []
+    expected_result: str = ""
+    actual_result: str = ""
+    environment: dict[str, str] = {}
+    error_message: str = ""
+    missing_information: list[str] = []
+    is_structured_report: bool = False
 
 
 @router.post('/enhance', response_model=AiResponse)
 def enhance_description(request: AiRequest, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    res = get_ai_suggestions(request.description)
+    res = get_ai_suggestions(request.description, title=request.title or "")
     # log activity and generate notifications if tied to an issue
     if request.issue_id:
         try:
