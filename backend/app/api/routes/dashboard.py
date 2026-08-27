@@ -8,6 +8,7 @@ from ...models.issue import Issue
 from ...models.project import Project
 from ...models.sprint import Sprint
 from ...models.user import User
+from ...models.milestone3 import AIFeedback
 from ...services.duplicate_detection import find_duplicates
 from ...utils.auth import get_current_user
 
@@ -48,6 +49,32 @@ def get_dashboard(db: Session = Depends(get_db), current_user: User = Depends(ge
     critical_issues = next(x['count'] for x in severity_distribution if x['severity'] == 'Critical')
     duplicate_count = db.query(func.count(Issue.id)).filter(Issue.is_possible_duplicate.is_(True), Issue.id.in_(visible_issue_ids)).scalar() or 0
     all_issues = db.query(Issue).filter(Issue.id.in_(visible_issue_ids)).all()
+    closed_issues = next(x['count'] for x in issue_status if x['status'] == 'Closed')
+    category_distribution = [
+        {'category': category or 'Uncategorized', 'count': count}
+        for category, count in db.query(Issue.category, func.count(Issue.id)).filter(Issue.id.in_(visible_issue_ids)).group_by(Issue.category).all()
+    ]
+    developer_workload = []
+    for developer in db.query(User).filter(User.role == 'Developer').order_by(User.full_name).all():
+        assigned = db.query(Issue).filter(Issue.assigned_to == developer.id, Issue.id.in_(visible_issue_ids)).all()
+        if not assigned:
+            continue
+        developer_workload.append({
+            'developer': developer.full_name,
+            'developer_id': developer.id,
+            'assigned': len(assigned),
+            'open': sum(issue.status == 'Open' for issue in assigned),
+            'in_progress': sum(issue.status == 'In Progress' for issue in assigned),
+            'resolved': sum(issue.status in {'Resolved', 'Verified', 'Closed'} for issue in assigned),
+            'risk': sum(issue.status not in {'Resolved', 'Verified', 'Closed'} and issue.created_at and (datetime.utcnow() - issue.created_at.replace(tzinfo=None)).days >= 7 for issue in assigned),
+        })
+    resolution_hours = []
+    for issue in all_issues:
+        resolved_activity = db.query(Activity).filter(Activity.issue_id == issue.id, Activity.action == 'Issue Resolved').order_by(Activity.created_at.asc()).first()
+        if resolved_activity and issue.created_at:
+            resolution_hours.append(max(0, (resolved_activity.created_at.replace(tzinfo=None) - issue.created_at.replace(tzinfo=None)).total_seconds() / 3600))
+    feedback_total = db.query(func.count(AIFeedback.id)).scalar() or 0
+    feedback_helpful = db.query(func.count(AIFeedback.id)).filter(AIFeedback.feedback_type == 'helpful').scalar() or 0
     similar_issues = []
     for item in all_issues:
         if not item.title:
@@ -84,11 +111,16 @@ def get_dashboard(db: Session = Depends(get_db), current_user: User = Depends(ge
         'total_issues': total_issues,
         'open_issues': open_issues,
         'resolved_issues': resolved_issues,
+        'closed_issues': closed_issues,
         'critical_issues': critical_issues,
         'issue_status': issue_status,
         'workflow_distribution': issue_status,
         'priority_distribution': priority_distribution,
         'severity_distribution': severity_distribution,
+        'category_distribution': category_distribution,
+        'developer_workload': developer_workload,
+        'average_resolution_time_hours': round(sum(resolution_hours) / len(resolution_hours), 1) if resolution_hours else None,
+        'ai_feedback': {'total': feedback_total, 'helpful': feedback_helpful, 'not_helpful': feedback_total - feedback_helpful, 'helpful_percentage': round(feedback_helpful / feedback_total * 100) if feedback_total else 0},
         'sprint_summary': sprint_summary,
         'recent_activity': recent_activity,
         'duplicate_detection': {'flagged_issues': duplicate_count, 'total_issues': total_issues},

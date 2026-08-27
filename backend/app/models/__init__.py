@@ -5,4 +5,5 @@ from .sprint import Sprint
 from .collaboration import AIRecommendation, Activity, Attachment, Comment
 
 from .notification import Notification
+from .milestone3 import AIFeedback, ChatMessage
 

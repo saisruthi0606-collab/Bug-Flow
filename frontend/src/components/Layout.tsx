@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import Sidebar from './Sidebar'
 import Topbar from './Topbar'
 import { clearAuthToken } from '../lib/api'
+import ChatAssistant from './ChatAssistant'
 
 export default function Layout({ children, title }: { children: ReactNode; title: string }) {
   const navigate = useNavigate()
@@ -35,6 +36,7 @@ export default function Layout({ children, title }: { children: ReactNode; title
           </div>
         </main>
       </div>
+      <ChatAssistant />
     </div>
   )
 }

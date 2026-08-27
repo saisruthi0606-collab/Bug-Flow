@@ -7,6 +7,7 @@ from ...models.user import User
 from ...schemas.issue import DuplicateCandidate, DuplicateCheck, IssueCreate, IssueOut, IssueUpdate
 from ...services.activity import log_activity
 from ...services.duplicate_detection import create_embedding, deserialize_embedding, find_duplicates, serialize_embedding, similarity
+from ...services.impact_predictor import predict_impact
 from ...utils.auth import get_current_user
 from .ai_service import get_ai_suggestions
 
@@ -208,6 +209,17 @@ def get_recommendation(issue_id: int, db: Session = Depends(get_db), current_use
     return recommendation
 
 
+@router.post("/{issue_id}/impact-predictor")
+def impact_predictor(issue_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    issue = get_issue_or_404(issue_id, db, current_user)
+    try:
+        return predict_impact(issue, db, current_user).model_dump()
+    except RuntimeError as exc:
+        raise HTTPException(status_code=503, detail=str(exc))
+    except ValueError as exc:
+        raise HTTPException(status_code=502, detail=str(exc))
+
+
 @router.get("/{issue_id}/missing-info")
 def get_missing_info(issue_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     issue = get_issue_or_404(issue_id, db, current_user)
@@ -228,7 +240,18 @@ def get_ai_investigation(issue_id: int, db: Session = Depends(get_db), current_u
     try:
         all_issues = db.query(Issue).filter(Issue.id != issue_id).all()
         candidates, _ = find_duplicates(all_issues, issue.title, issue.description, issue.project_id, threshold=0.35, limit=5)
-        similar = candidates
+        similar = []
+        for candidate in candidates:
+            related = db.query(Issue).filter(Issue.id == candidate["id"]).first()
+            recommendation = db.query(AIRecommendation).filter(AIRecommendation.issue_id == candidate["id"]).first() if related else None
+            related_comments = db.query(Comment).filter(Comment.issue_id == candidate["id"]).order_by(Comment.created_at.asc()).limit(5).all() if related else []
+            similar.append({
+                **candidate,
+                "status": related.status if related else None,
+                "previous_root_cause": recommendation.root_cause if recommendation else None,
+                "previous_resolution": recommendation.suggested_resolution if recommendation else None,
+                "developer_comments": [comment.body for comment in related_comments],
+            })
     except Exception:
         similar = []
     suggestions["similar_issues"] = similar

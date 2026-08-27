@@ -2,10 +2,14 @@ import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import Layout from '../components/Layout'
 import { api } from '../lib/api'
-import type { Issue, Project, Sprint, UserListItem } from '../lib/types'
+import type { ImpactPrediction, Issue, Project, Sprint, UserListItem } from '../lib/types'
 const severityClass: Record<string,string> = { Critical:'bg-rose-500/15 text-rose-500', High:'bg-orange-500/15 text-orange-500', Medium:'bg-amber-500/15 text-amber-500', Low:'bg-sky-500/15 text-sky-500' }
 export default function IssuesPage() {
   const [filters,setFilters]=useState({search:'',status:'',priority:'',severity:'',sprint_id:'',project_id:'',assigned_to:'',category:'',sort:'newest',semantic:false})
+  const [impactIssue,setImpactIssue]=useState<Issue|null>(null)
+  const [impact,setImpact]=useState<ImpactPrediction|null>(null)
+  const [impactLoading,setImpactLoading]=useState(false)
+  const [impactError,setImpactError]=useState('')
   const {data: sprints=[]}=useQuery<Sprint[]>({queryKey:['sprints'],queryFn:async()=> (await api.get('/api/sprints')).data})
   const {data: projects=[]}=useQuery<Project[]>({queryKey:['projects'],queryFn:async()=> (await api.get('/api/projects')).data})
   const {data: users=[]}=useQuery<UserListItem[]>({queryKey:['users'],queryFn:async()=> (await api.get('/api/users')).data})
@@ -17,6 +21,12 @@ export default function IssuesPage() {
     return res.data
   }})
   const update=(key:string,value:string|boolean)=>setFilters(x=>({...x,[key]:value}))
+  const openImpact = async (issue: Issue) => {
+    setImpactIssue(issue); setImpact(null); setImpactError(''); setImpactLoading(true)
+    try { setImpact((await api.post<ImpactPrediction>(`/api/issues/${issue.id}/impact-predictor`)).data) }
+    catch (error:any) { setImpactError(error?.response?.data?.detail || 'Unable to generate an impact prediction.') }
+    finally { setImpactLoading(false) }
+  }
   return (
     <Layout title="Issues">
       <div className="rounded-3xl border border-border bg-card p-6 shadow-glow">
@@ -72,7 +82,9 @@ export default function IssuesPage() {
                     <span className="rounded-full bg-accent/10 px-3 py-1 text-sm text-accent">{issue.priority}</span>
                   </div>
                   <div className="text-sm text-muted-foreground">
-                    <div>AI Score: {issue.ai_score ?? '—'}</div>
+                    <button type="button" onClick={()=>openImpact(issue)} className="flex max-w-full items-center gap-2 rounded-xl border border-primary/30 bg-primary/10 px-3 py-2 text-sm font-semibold text-primary transition hover:border-primary hover:bg-primary/20 cursor-pointer">
+                      <span>🤖 AI Fix Impact</span><span className="rounded-md border border-primary/20 bg-background/40 px-2 py-0.5 text-xs font-medium">Analyze</span>
+                    </button>
                     <div>Attachments: {issue.attachment_count ?? 0} • Comments: {issue.comment_count ?? 0}</div>
                     <div className="mt-1">Created: {new Date(issue.created_at).toLocaleString()}</div>
                     <div>Updated: {new Date(issue.updated_at).toLocaleString()}</div>
@@ -88,6 +100,14 @@ export default function IssuesPage() {
           {!isLoading && !issues.length && <p className="text-muted-foreground">No issues found.</p>}
         </div>
       </div>
+      {impactIssue && <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" role="dialog" aria-modal="true" aria-labelledby="impact-title">
+        <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-border bg-card p-6 shadow-glow">
+          <div className="flex items-start justify-between gap-4"><div><h2 id="impact-title" className="text-xl font-semibold">AI Bug Fix Impact Predictor</h2><p className="mt-1 text-sm text-muted-foreground">Issue: {impactIssue.title}</p></div><button type="button" onClick={()=>setImpactIssue(null)} className="rounded-lg border border-border px-3 py-1 text-sm">Close</button></div>
+          {impactLoading && <p className="mt-6 text-sm text-muted-foreground">Analyzing permitted issue context...</p>}
+          {impactError && <p className="mt-6 text-sm text-rose-400">{impactError}</p>}
+          {impact && <div className="mt-5 grid gap-4 text-sm"><div className="flex flex-wrap gap-3"><span className="rounded-full bg-primary/10 px-3 py-1">Impact Level: <strong>{impact.impact_level}</strong></span><span className="rounded-full bg-accent/10 px-3 py-1">Regression Risk: <strong>{impact.regression_risk}</strong></span><span className="rounded-full bg-background px-3 py-1">Confidence: <strong>{impact.confidence}%</strong></span></div><p><strong>Affected Areas</strong><br/>{impact.affected_areas.join(' • ')}</p>{[['Expected Effects',impact.expected_effects],['Possible Side Effects',impact.possible_side_effects],['Recommended Testing',impact.recommended_testing],['Recommended Precautions',impact.recommended_precautions]].map(([label,items])=><div key={String(label)}><strong>{label}</strong><ul className="mt-1 list-disc space-y-1 pl-5">{(items as string[]).map(item=><li key={item}>{item}</li>)}</ul></div>)}<p><strong>AI Summary</strong><br/>{impact.summary}</p></div>}
+        </div>
+      </div>}
     </Layout>
   )
 }

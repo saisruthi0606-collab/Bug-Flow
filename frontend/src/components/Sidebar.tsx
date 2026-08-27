@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom'
-import { LayoutDashboard, FolderKanban, Bug, BarChart3, UserCircle, Settings2, CalendarRange } from 'lucide-react'
+import { LayoutDashboard, FolderKanban, Bug, BarChart3, UserCircle, Settings2, CalendarRange, Radar } from 'lucide-react'
 
 const navItems = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -7,6 +7,7 @@ const navItems = [
   { name: 'Issues', href: '/issues', icon: Bug },
   { name: 'Sprints', href: '/sprints', icon: CalendarRange },
   { name: 'Analytics', href: '/analytics', icon: BarChart3 },
+  { name: 'Risk Radar', href: '/risk-radar', icon: Radar },
   { name: 'Profile', href: '/profile', icon: UserCircle },
   { name: 'Settings', href: '/settings', icon: Settings2 },
 ]

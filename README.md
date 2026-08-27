@@ -577,3 +577,26 @@ Project Manager
           ▼
        Closed
 ```
+
+## Milestone 3
+
+Milestone 3 extends the existing BugFlow architecture with role-scoped analytics (categories, closed issues, developer workload, resolution time, and AI feedback), a transparent Defect Risk Radar, grounded AI chat, and feedback capture. Existing issue AI, semantic search, duplicate detection, authentication, lifecycle, and RBAC remain in place.
+
+### Gemini and RAG
+
+Set `GEMINI_API_KEY` in the backend environment to enable Gemini generation (the default model is `gemini-3.6-flash`). Without a key, retrieval still works and the assistant reports that generation is not configured. Retrieval embeds the question with the existing 384-dimensional embedding service, ranks only issues visible to the authenticated user, and supplies issue details, comments, activity, and stored AI recommendations as context.
+
+```text
+User → /api/chat/ask → question embedding → role-scoped top-k issues
+     → context builder → Gemini (optional) → grounded answer + sources → feedback
+```
+
+Chat history is stored in `chat_messages`; AI ratings are stored in `ai_feedback`. Apply Alembic revision `003_milestone3_ai` for an existing database (development startup also creates additive tables safely).
+
+### New APIs
+
+- `POST /api/chat/ask` and `GET /api/chat/history` (JWT protected)
+- `POST /api/ai/feedback` (JWT protected)
+- `GET /api/risk` (JWT protected)
+
+Interactive Swagger documentation remains available at `/docs`. Run backend tests with `python -m pytest` and the frontend check with `npm run build`. CI runs both through `.github/workflows/ci.yml` on pushes and pull requests.

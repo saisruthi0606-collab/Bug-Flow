@@ -23,7 +23,15 @@ type DashboardData = {
   similar_issues?: Array<{ issue_id:number; title:string; similar_issue_id:number; similar_issue_title:string; similarity:number }>
 }
 
-export default function DashboardPage({ user }: { user: any }) {
+export default function DashboardPage() {
+  const { data: currentUser, isLoading: isCurrentUserLoading } = useQuery<{ full_name: string; role: string }>({
+    queryKey: ['current-user'],
+    queryFn: async () => {
+      const response = await api.get('/api/users/me')
+      return response.data
+    },
+  })
+
   const { data, isLoading } = useQuery<DashboardData>({
     queryKey: ['dashboard'],
     queryFn: async () => {
@@ -41,7 +49,7 @@ export default function DashboardPage({ user }: { user: any }) {
   const aiReport = data?.ai_report ?? { summary: 'No AI report available.', risk_level: 'Low', insights: [], recommendations: [] }
   const similarIssues = data?.similar_issues ?? []
 
-  if (isLoading) {
+  if (isLoading || isCurrentUserLoading) {
     return (
       <Layout title="Dashboard">
         <div className="rounded-3xl border border-border bg-card p-6 text-center text-muted-foreground">Loading dashboard metrics…</div>
@@ -57,11 +65,11 @@ export default function DashboardPage({ user }: { user: any }) {
             <UserCircle size={24} />
             <div>
               <p className="text-sm uppercase tracking-[0.3em] text-muted-foreground">Welcome</p>
-              <h3 className="text-xl font-semibold text-foreground">{user?.full_name || 'User'}</h3>
+              <h3 className="text-xl font-semibold text-foreground">{currentUser?.full_name || 'User'}</h3>
             </div>
           </div>
           <p className="mt-4 text-sm text-muted-foreground">
-            You are logged in as <span className="font-medium text-foreground">{user?.role || 'Reporter'}</span>.
+            You are logged in as <span className="font-medium text-foreground">{currentUser?.role}</span>.
           </p>
         </div>
 

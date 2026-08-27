@@ -10,5 +10,7 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     access_token_expire_minutes: int = 60 * 24
     upload_dir: str = str(ROOT_DIRECTORY / "uploads")
-    class Config: env_file = ".env"
+    gemini_api_key: str | None = None
+    gemini_model: str = "gemini-3.6-flash"
+    class Config: env_file = str(ROOT_DIRECTORY / "backend" / ".env")
 settings = Settings()

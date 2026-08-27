@@ -460,7 +460,7 @@ export default function IssueDetailPage() {
                       <strong>Similar previous issues:</strong>
                       <ul className="mt-1 space-y-1">
                         {investigation.similar_issues.map((s) => (
-                          <li key={s.id}><a className="text-primary" href={`/issues/${s.id}`}>{s.title}</a> <span className="text-muted-foreground">({s.similarity}%)</span></li>
+                          <li key={s.id} className="rounded-lg border border-border p-2"><a className="text-primary" href={`/issues/${s.id}`}>{s.title}</a> <span className="text-muted-foreground">({s.similarity}%)</span>{s.status && <div className="text-xs text-muted-foreground">Status: {s.status}</div>}<div className="mt-1 text-xs">Previous root cause: {s.previous_root_cause || 'No previous resolution found.'}</div><div className="text-xs">Previous resolution: {s.previous_resolution || 'No previous resolution found.'}</div>{s.developer_comments && s.developer_comments.length > 0 && <div className="text-xs text-muted-foreground">Developer comments: {s.developer_comments.join(' | ')}</div>}</li>
                         ))}
                       </ul>
                     </div>

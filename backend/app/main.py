@@ -7,7 +7,8 @@ from .models.sprint import Sprint
 from .models.issue import Issue
 from .models.collaboration import AIRecommendation, Activity, Attachment, Comment
 from .models.notification import Notification
-from .api.routes import auth, projects, issues, users, ai, dashboard, sprints, collaboration, notifications
+from .models.milestone3 import AIFeedback, ChatMessage
+from .api.routes import auth, projects, issues, users, ai, chat, dashboard, feedback, risk, sprints, collaboration, notifications
 from .api.routes import uploads
 
 app = FastAPI(title="BugFlow API", version="2.0.0")
@@ -20,11 +21,13 @@ app.include_router(collaboration.router, prefix="/api/issues", tags=["collaborat
 app.include_router(sprints.router, prefix="/api/sprints", tags=["sprints"])
 app.include_router(users.router, prefix="/api/users", tags=["users"])
 app.include_router(ai.router, prefix="/api/ai", tags=["ai"])
+app.include_router(feedback.router, prefix="/api/ai", tags=["ai"])
+app.include_router(chat.router, prefix="/api/chat", tags=["chat"])
 app.include_router(dashboard.router, prefix="/api/dashboard", tags=["dashboard"])
+app.include_router(risk.router, prefix="/api/risk", tags=["risk"])
 app.include_router(notifications.router, prefix="/api/notifications", tags=["notifications"])
 app.include_router(uploads.router, prefix="/api/uploads", tags=["uploads"])
 @app.get("/health")
 def health_check(): return {"status": "ok", "version": "2.0.0"}
-
 
 
