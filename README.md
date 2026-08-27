@@ -1,357 +1,778 @@
-# Intelligent Software Defect Tracking System with Resolution Assistance
+Yes amma ❤️ Since **Milestone 3 is completed and manually verified**, replace your current `README.md` completely with the following.
 
-An intelligent full-stack software defect tracking platform that manages the complete defect lifecycle while providing AI-assisted defect analysis, duplicate detection, semantic search, debugging guidance, and resolution assistance.
+I’ve kept it aligned with your actual BugFlow features: Milestones 1–3, JWT/RBAC, AI analysis, RAG, Gemini, chatbot, chat history, feedback, Risk Radar, Analytics, and the **AI Bug Fix Impact Predictor**. The original project documentation also describes the chatbot, historical resolution intelligence, RAG source handling, security, migrations, and UI requirements. 
 
-## 📌 Project Overview
+## Copy-paste entire README.md
 
-The **Intelligent Software Defect Tracking System with Resolution Assistance** extends a traditional defect tracking platform with intelligent capabilities.
+````markdown
+# BUGFLOW — Intelligent Defect Tracking & AI-Assisted Bug Management
 
-The system supports the complete defect lifecycle:
+BugFlow is an intelligent defect tracking and management platform designed to help software teams report, track, analyze, prioritize, resolve, and monitor software defects throughout their complete lifecycle.
 
-**Report → Assign → Track → Analyze → Assist Resolution → Fix → Verify → Close**
+Unlike a traditional issue tracker, BugFlow combines:
 
-Unlike traditional defect tracking systems, the platform uses AI to help teams:
+- Secure authentication and role-based access control
+- Project and defect management
+- Complete defect lifecycle management
+- Sprint and Kanban management
+- Collaboration and activity tracking
+- AI-assisted defect analysis
+- Duplicate and similar issue detection
+- Semantic search using vector embeddings
+- AI-powered resolution assistance
+- Historical resolution intelligence
+- Retrieval-Augmented Generation (RAG)
+- Gemini-powered conversational AI
+- AI chat history and feedback
+- Defect Risk Radar
+- AI Bug Fix Impact Predictor
+- Advanced analytics
+- REST APIs
+- CI/CD automation
 
-- Classify software defects
-- Suggest severity and priority
-- Detect missing information in defect reports
-- Identify potentially duplicate defects
-- Search for semantically similar historical defects
-- Suggest possible root causes
-- Provide debugging guidance
-- Recommend possible resolutions
+BugFlow follows the idea:
 
-The system is designed for collaboration between **Reporters, Developers, QA Testers, Project Managers, and Administrators**.
-
----
-
-## 🎯 Key Objectives
-
-- Centralize software defect management.
-- Provide secure authentication and role-based access control.
-- Track defects throughout their complete lifecycle.
-- Enable project and sprint management.
-- Support developer collaboration through comments and attachments.
-- Maintain detailed activity and audit history.
-- Provide real-time notifications for important defect events.
-- Use AI to assist defect analysis and resolution.
-- Reduce duplicate defect reports using semantic similarity.
-- Help developers investigate defects using intelligent resolution assistance.
+> Detect. Debug. Deliver.
 
 ---
 
-# 👥 User Roles
+# 1. Project Overview
 
-The system supports the following roles:
+Software teams often use issue trackers to record bugs, but traditional defect management systems mainly store and display information.
 
-### 👤 Reporter
+BugFlow extends this concept by adding AI-assisted intelligence to the defect management workflow.
 
-Responsible for reporting and tracking defects.
+The system helps users:
 
-- Create/report defects
-- Create projects where permitted
-- View available developers
-- Assign reported defects to developers
-- Track defect progress
-- View relevant comments, activities and notifications
-- Use AI-assisted features
-
-### 👨‍💻 Developer
-
-Responsible for investigating and fixing assigned defects.
-
-- View assigned defects
-- Receive assignment notifications
-- Work on defects
-- Update defect status
-- Add comments and attachments
-- Use AI analysis and resolution assistance
-- Resolve defects
-- Create defects when required
-
-### 🧪 QA Tester
-
-Responsible for testing and verifying resolved defects.
-
-- View defects requiring testing
-- Test resolved defects
-- Verify successful fixes
-- Reopen defects when fixes fail
-- Add comments and attachments
-- View relevant activities and notifications
-- Use existing AI assistance
-
-### 📊 Project Manager
-
-Responsible for project and workflow management.
-
-- Create and manage projects
-- Manage sprints
-- Assign/reassign defects
-- Monitor project progress
-- Monitor sprint progress
-- View analytics and activity
-- Manage the defect workflow
-
-### 🛡️ Admin
-
-Provides system-wide management.
-
-- Manage users and roles
-- Manage projects
-- Manage defects
-- Manage assignments
-- Manage sprints
-- View system-wide information
-- Manage system-level functionality
+1. Report defects
+2. Validate defect information
+3. Classify and prioritize defects
+4. Detect similar or duplicate defects
+5. Assign defects to developers
+6. Track defect lifecycle
+7. Investigate root causes
+8. Retrieve historical resolutions
+9. Predict defect risk
+10. Estimate the potential impact of a bug fix
+11. Ask natural-language questions about project defects
+12. Analyze project trends
+13. Collaborate through comments and activity tracking
+14. Provide feedback on AI responses
 
 ---
 
-# 🔄 Defect Lifecycle
+# 2. Main Objectives
 
-The system follows a structured defect lifecycle:
+The main objectives of BugFlow are:
+
+- Build a complete defect management platform.
+- Provide secure authentication and authorization.
+- Implement role-based workflows.
+- Track defects through their complete lifecycle.
+- Improve defect investigation using AI.
+- Detect duplicate and similar defects.
+- Retrieve previous resolutions for similar problems.
+- Provide natural-language interaction through an AI assistant.
+- Identify high-risk defects.
+- Predict the potential impact of proposed bug fixes.
+- Provide useful project analytics.
+- Preserve security and existing RBAC permissions.
+- Provide scalable REST APIs.
+- Automate testing and build verification through CI/CD.
+
+---
+
+# 3. Milestone 1 — Foundation
+
+Milestone 1 establishes the core BugFlow platform.
+
+## Authentication
+
+BugFlow uses JWT-based authentication for secure user sessions.
+
+Features include:
+
+- User registration
+- Login
+- Logout
+- Password handling
+- JWT authentication
+- Protected routes
+- Authenticated API requests
+
+---
+
+## Role-Based Access Control
+
+BugFlow supports role-based access control.
+
+Supported roles include:
+
+- Admin
+- Project Manager
+- Developer
+- QA
+- Reporter
+
+Role permissions determine which actions and issue/project information users can access.
+
+The system uses the existing authenticated-user information as the source of truth for displaying the current user's role.
+
+---
+
+## Project Management
+
+Users can manage projects and associated information.
+
+Project functionality includes:
+
+- Project creation
+- Project management
+- Project details
+- Project-level defect tracking
+- Project assignment
+
+---
+
+## Defect Management
+
+Core defect functionality includes:
+
+- Create defect
+- View defect
+- Edit defect
+- Delete defect
+- Assign developer
+- Severity classification
+- Priority classification
+- Project association
+- Sprint association
+- Defect filtering
+- Defect searching
+- Defect sorting
+
+---
+
+## Dashboard
+
+The BugFlow dashboard provides an overview of project and defect information.
+
+It includes:
+
+- Defect statistics
+- Status overview
+- Severity information
+- Priority information
+- Project information
+- Analytics summaries
+
+---
+
+# 4. Milestone 2 — Lifecycle & Intelligence
+
+Milestone 2 extends BugFlow from a basic issue tracker into an intelligent defect management platform.
+
+---
+
+## Defect Lifecycle
+
+Defects can move through multiple lifecycle stages:
 
 ```text
-Reported
+REPORTED
    ↓
-Assigned
+ASSIGNED
    ↓
-In Progress
+IN PROGRESS
    ↓
-In Review
+IN REVIEW
    ↓
-Resolved
+RESOLVED
    ↓
-Verified
+VERIFIED
    ↓
-Closed
-
-
-# 🤖 Intelligent Defect Analysis
-
-The system introduces an intelligent layer on top of traditional defect tracking.
-
-## 1. AI-Assisted Defect Classification
-
-The system analyzes the defect title and description and can suggest:
-
-- Defect category
-- Defect type
-- Component/module
-- Severity
-- Priority
-
-### Example
-
-**Input:**
-
-> Payment page crashes when the user clicks Submit.
-
-**AI Suggestion:**
-
-```text
-Category: Payment
-Type: Functional Defect
-Severity: High
-Priority: High
+CLOSED
 ````
 
-The user remains responsible for accepting or modifying the suggestion.
+The lifecycle provides controlled defect progression from reporting to final closure.
 
 ---
 
-# 📝 2. Missing Information Detection
+## Sprint Management
 
-The system can identify missing information in a defect report.
+BugFlow supports sprint-based defect management.
 
-It can check for information such as:
+Features include:
 
-* Operating System
-* Browser
-* Application version
-* Reproduction steps
-* Expected result
-* Actual result
-* Error message
-* Relevant environment information
-
-### Example
-
-```text
-Missing Information:
-- Reproduction steps
-- Browser
-- Application version
-```
-
-This helps users create more complete and useful defect reports.
+* Sprint creation
+* Sprint assignment
+* Sprint tracking
+* Issue association with sprints
+* Sprint-based workflow
 
 ---
 
-# 🔍 3. Duplicate Defect Detection
+## Kanban Board
 
-When a new defect is submitted, the system compares it with existing defects to identify potentially similar issues.
+The Kanban board provides a visual representation of issue progress.
 
-### Example
+Issues are organized according to their lifecycle status.
 
-**New defect:**
-
-> Application crashes when submitting payment.
-
-**Existing defect:**
-
-> Payment submission causes application crash.
-
-The system can warn:
-
-```text
-⚠️ Possible Similar Defect Found
-
-DEF-102
-Payment submission crash
-
-Similarity: 86%
-```
-
-This helps reduce duplicate defect entries.
+This helps project managers and developers understand current work and progress.
 
 ---
 
-# 🧠 4. Semantic Search
+## Comments & Collaboration
 
-The system supports semantic similarity rather than relying only on exact keyword matching.
-
-### Example
-
-**Search:**
-
-> Payment fails after clicking submit.
-
-**Possible result:**
-
-> Transaction crashes during checkout.
-
-Even though the wording is different, the system can identify that the issues have similar meaning.
-
-The existing implementation uses vector embeddings and similarity comparison for this functionality.
-
----
-
-# 💡 5. Resolution Assistance
-
-Resolution assistance is the major intelligent feature of the updated project.
-
-When a developer opens a defect, the system can provide:
-
-* Possible root causes
-* Suggested investigation areas
-* Debugging steps
-* Possible resolution
-* Recommended next action
-* Similar historical defects
-* Relevant previous resolution information where available
-
-### Example
-
-**Defect:**
-
-> Payment crashes after clicking Submit.
-
-**Resolution Assistance:**
-
-```text
-Possible Investigation Areas:
-
-1. Check payment API response.
-2. Check null/undefined handling.
-3. Review frontend error handling.
-4. Check server logs.
-5. Review recent changes to the payment module.
-
-Possible Resolution:
-
-Validate the payment API response before processing
-the transaction result and handle unexpected responses.
-```
-
-The AI provides **assistance**, not guaranteed automatic fixes.
-
-The developer remains responsible for reviewing and applying the final solution.
-
----
-
-# 🏃 Sprint Management
-
-The system provides sprint planning and Kanban-based defect tracking.
-
-Issues can be assigned to a specific sprint and managed through the defect lifecycle.
-
-### Example
-
-```text
-┌──────────┬─────────────┬────────────┬───────────┐
-│ Reported │ In Progress │ In Review  │ Resolved  │
-├──────────┼─────────────┼────────────┼───────────┤
-│ DEF-101  │ DEF-105     │ DEF-109    │ DEF-102   │
-│ DEF-104  │ DEF-107     │            │ DEF-108   │
-└──────────┴─────────────┴────────────┴───────────┘
-```
-
----
-
-# 💬 Collaboration
-
-The platform supports collaboration through:
+BugFlow provides collaboration features including:
 
 * Comments
 * File attachments
 * Activity history
-* Defect history
+* Developer assignment updates
+* Sprint assignment updates
+* Status-change tracking
 * Notifications
-* Developer assignment
-* Sprint assignment
 
-Important actions are recorded in the activity history.
-
----
-
-# 🔔 Notifications
-
-Users receive notifications for relevant events such as:
-
-* Defect assignment
-* Status changes
-* Comments
-* Attachments
-* Important defect updates
-* Other supported workflow events
-
-### Example
+The project documentation defines the collaboration flow as:
 
 ```text
-🔔 New Defect Assigned
-
-DEF-105 has been assigned to you.
+Issue
+  ↓
+Assignment
+  ↓
+Comment
+  ↓
+Status Change
+  ↓
+Activity History
+  ↓
+Notification
 ```
 
 ---
 
-# 🔐 Authentication & Authorization
+# 5. AI-Assisted Defect Analysis
 
-The application uses:
+BugFlow uses AI to assist users during defect investigation and management.
 
-* JWT-based authentication
-* Role-Based Access Control (RBAC)
-* Protected API endpoints
-* Role-specific permissions
+The AI analysis system supports:
 
-Users can register and log in according to the available roles.
+### AI-Assisted Classification
 
-Backend authorization is used to prevent unauthorized operations.
+AI can help understand and classify defect information.
+
+### Severity & Priority Assistance
+
+AI provides assistance when evaluating the severity and priority of reported defects.
+
+### Missing Information Detection
+
+The system can identify missing or incomplete information in defect reports.
+
+### Duplicate / Similar Defect Detection
+
+BugFlow can identify potentially duplicate or similar defects.
+
+### Semantic Search
+
+Defects can be searched using semantic similarity rather than only exact keyword matching.
+
+### AI Resolution Assistance
+
+AI can provide suggestions for resolving reported defects.
+
+### Root Cause Assistance
+
+AI can provide investigation guidance and possible root-cause directions.
+
+### Investigation Recommendations
+
+AI can recommend useful investigation steps for developers.
+
+The existing AI analysis covers classification, severity/priority assistance, missing information detection, duplicate detection, semantic search, resolution assistance, root-cause assistance, and investigation recommendations. 
 
 ---
 
-# 🛠️ Technology Stack
+# 6. Milestone 3 — Advanced AI & Intelligence
+
+Milestone 3 introduces advanced AI capabilities and project intelligence.
+
+Major features include:
+
+* Analytics
+* REST APIs
+* RAG
+* Gemini integration
+* AI chatbot
+* Chat history
+* AI feedback
+* Historical Resolution Intelligence
+* Defect Risk Radar
+* AI Bug Fix Impact Predictor
+* CI/CD
+* Documentation
+
+---
+
+# 7. Retrieval-Augmented Generation (RAG)
+
+BugFlow uses Retrieval-Augmented Generation to provide AI answers based on actual BugFlow project information.
+
+Instead of asking the AI to answer only from general knowledge, BugFlow retrieves relevant project information first.
+
+The general flow is:
+
+```text
+User Question
+      ↓
+Question Processing
+      ↓
+Relevant BugFlow Issue Retrieval
+      ↓
+Semantic Similarity / Retrieval
+      ↓
+Relevant Issue Context
+      ↓
+Gemini
+      ↓
+Grounded AI Response
+      ↓
+Sources / Retrieved Issues
+```
+
+The chatbot uses retrieved BugFlow information such as:
+
+* Issue details
+* Comments
+* Activity
+* Historical resolutions
+* Existing AI investigation information
+* Related defects
+
+---
+
+## RAG Retrieval Priority
+
+BugFlow follows this preference:
+
+1. Exact relevant existing issue
+2. Similar historical issue
+3. Relevant comments/activity
+4. Existing AI investigation/resolution suggestions
+5. General LLM reasoning
+
+The LLM should not override retrieved BugFlow facts.
+
+If retrieved information conflicts, the response should clearly explain the conflict.
+
+---
+
+# 8. Gemini Integration
+
+BugFlow integrates Google's Gemini API for AI-generated responses.
+
+Gemini is used for:
+
+* Conversational AI
+* BugFlow question answering
+* RAG-based responses
+* Investigation assistance
+* Historical resolution explanations
+* General project-related questions
+
+The Gemini configuration is environment-based.
+
+Required environment variable:
+
+```env
+GEMINI_API_KEY=your_gemini_api_key
+```
+
+Optional:
+
+```env
+GEMINI_MODEL=gemini-3.6-flash
+```
+
+Never commit the actual API key to GitHub.
+
+The `.env` file should remain excluded from version control.
+
+---
+
+# 9. BugFlow AI Assistant
+
+BugFlow includes a floating AI assistant positioned at the bottom-left of the application.
+
+The assistant allows users to ask questions in natural language.
+
+Examples:
+
+```text
+Hi
+
+What is RAG?
+
+What issues are related to login authentication?
+
+Have we seen a similar bug before?
+
+How was a similar issue resolved?
+
+What should the developer investigate?
+
+Show previous authentication-related defects.
+
+Which bugs are currently high risk?
+
+What are the common causes of login failures?
+
+Which developer has the highest unresolved workload?
+
+Summarize the recent defects in this project.
+
+What was the previous resolution for a similar defect?
+```
+
+---
+
+## Normal Conversation
+
+The chatbot also supports normal conversational questions.
+
+For example:
+
+```text
+Hi
+Hello
+What is RAG?
+What is semantic search?
+```
+
+Normal conversational questions can use Gemini directly without unnecessarily retrieving BugFlow issues.
+
+---
+
+## BugFlow-Specific Questions
+
+Questions related to BugFlow defects use the RAG pipeline.
+
+For example:
+
+```text
+What issues are related to login authentication?
+```
+
+The system retrieves relevant permitted issues and provides a grounded answer.
+
+---
+
+# 10. Chat History
+
+BugFlow stores chatbot conversations in the `chat_messages` database table.
+
+Stored information includes:
+
+* User ID
+* User message
+* AI response
+* Creation timestamp
+* Retrieved issue information when applicable
+
+The system does not store:
+
+* Gemini API keys
+* Passwords
+* JWT secrets
+* Database credentials
+* Other private secrets
+
+Chat history is associated with the authenticated user.
+
+Users can start a new conversation using the `New Chat` option while previous chat records remain stored.
+
+---
+
+# 11. AI Feedback
+
+Users can provide feedback on AI-generated responses.
+
+Available feedback:
+
+```text
+👍 Helpful
+👎 Not Helpful
+```
+
+Feedback is stored in the database with information such as:
+
+* User ID
+* AI response/message reference
+* Feedback type
+* Creation timestamp
+
+This provides a foundation for evaluating AI response usefulness.
+
+---
+
+# 12. Historical Resolution Intelligence
+
+BugFlow can use previously resolved defects to assist with current defect investigation.
+
+When a similar resolved issue is found, the system can display:
+
+* Related defect
+* Previous root cause
+* Previous resolution
+* Relevant developer comments
+
+Example:
+
+```text
+Current Issue
+     ↓
+Find Similar Historical Defect
+     ↓
+Previous Root Cause
+     ↓
+Previous Resolution
+     ↓
+Developer Comments
+     ↓
+Investigation Guidance
+```
+
+If no historical resolution exists, the system clearly reports:
+
+```text
+No previous resolution found.
+```
+
+The system does not invent historical resolutions.
+
+Historical resolution information is also used by the RAG chatbot.
+
+---
+
+# 13. Defect Risk Radar
+
+The Defect Risk Radar identifies and ranks potentially high-risk defects.
+
+It provides an intelligence layer over the existing issue data.
+
+The Risk Radar can help users identify:
+
+* High-risk issues
+* Critical defects
+* Issues requiring attention
+* Risk-ranked defects
+* Defects with potentially higher impact
+
+The feature respects existing issue visibility and RBAC rules.
+
+Users only receive information they are permitted to access.
+
+---
+
+# 14. AI Bug Fix Impact Predictor
+
+BugFlow includes an AI Bug Fix Impact Predictor directly in the Issues page.
+
+For each issue, users can access:
+
+```text
+AI Fix Impact
+```
+
+The feature provides an AI-assisted impact report for a proposed bug fix.
+
+The predictor can help evaluate areas such as:
+
+* Potential impact
+* Risk level
+* Affected areas
+* Regression concerns
+* Testing considerations
+* Recommended validation
+
+The result is displayed in a popup/report without replacing the existing issue workflow.
+
+The feature is designed to help developers and project managers understand the possible consequences of fixing a defect before implementation.
+
+---
+
+# 15. Analytics
+
+Milestone 3 extends the existing analytics system.
+
+Analytics can provide insights into:
+
+* Defect workload
+* Issue categories
+* Resolution information
+* Feedback information
+* Defect distribution
+* Project trends
+
+Analytics are additive and preserve the existing dashboard functionality.
+
+---
+
+# 16. REST APIs
+
+Milestone 3 introduces isolated REST APIs for AI-related functionality.
+
+## Chat
+
+```http
+POST /api/chat/ask
+```
+
+Used to submit a question to the BugFlow AI assistant.
+
+Example request:
+
+```json
+{
+  "message": "What issues are related to login authentication?"
+}
+```
+
+---
+
+## Chat History
+
+```http
+GET /api/chat/history
+```
+
+Returns the authenticated user's chat history.
+
+---
+
+## AI Feedback
+
+```http
+POST /api/ai/feedback
+```
+
+Stores feedback for an AI response.
+
+---
+
+## Risk Radar
+
+```http
+GET /api/risk
+```
+
+Returns risk-related defect information according to existing visibility rules.
+
+---
+
+## API Security
+
+All Milestone 3 APIs use the existing JWT authentication system.
+
+The APIs do not bypass existing RBAC permissions.
+
+---
+
+# 17. Database
+
+BugFlow uses SQLAlchemy for database interaction and Alembic for migrations.
+
+Milestone 3 introduces an additive migration:
+
+```text
+003_milestone3_ai
+```
+
+The migration adds:
+
+```text
+chat_messages
+ai_feedback
+```
+
+Existing data and existing tables are preserved.
+
+No unnecessary existing columns or tables are deleted.
+
+---
+
+# 18. Security
+
+BugFlow follows secure application practices including:
+
+* JWT authentication
+* Password protection
+* Role-based access control
+* Protected API routes
+* Input validation
+* User-scoped chat history
+* Permission-aware RAG retrieval
+* Protected issue information
+* Secure environment variables
+* API key protection
+
+The application must never expose:
+
+```text
+Passwords
+JWT secrets
+Gemini API keys
+Database credentials
+Environment variables
+Internal security secrets
+```
+
+RAG retrieval also respects the current user's access to projects and issues.
+
+---
+
+# 19. Error Handling
+
+BugFlow handles common AI and API failures gracefully.
+
+Examples include:
+
+* Invalid requests
+* Empty questions
+* Authentication failures
+* Gemini API failures
+* Invalid API keys
+* Rate limits
+* Timeouts
+* Retrieval failures
+* No relevant issues
+* Database failures
+
+The application should not crash when Gemini is unavailable.
+
+AI failures are handled safely without exposing internal stack traces or secrets.
+
+---
+
+# 20. Performance
+
+The RAG system uses targeted retrieval rather than sending the entire database to the AI model.
+
+The system uses:
+
+* Top-K retrieval
+* Semantic similarity
+* Existing embeddings
+* On-demand embedding where required
+* Lexical fallback where appropriate
+* Relevant issue context only
+
+This keeps AI requests focused on the most useful project information.
+
+---
+
+# 21. Technology Stack
 
 ## Frontend
 
@@ -359,7 +780,8 @@ Backend authorization is used to prevent unauthorized operations.
 * TypeScript
 * Tailwind CSS
 * Axios
-* Modern component-based UI
+* Framer Motion
+* Vite
 
 ## Backend
 
@@ -368,235 +790,640 @@ Backend authorization is used to prevent unauthorized operations.
 * SQLAlchemy
 * Pydantic
 * JWT Authentication
+* Uvicorn
 
 ## Database
 
-* PostgreSQL / SQLAlchemy-compatible relational database
+* SQLite for local development
+* SQLAlchemy ORM
+* Alembic migrations
 
-## AI / Intelligent Layer
+## AI / NLP
 
-* Natural Language Processing
+* Google Gemini API
 * Sentence Transformers
-* `all-MiniLM-L6-v2`
-* Vector embeddings
-* Cosine / inner-product similarity
-* Semantic duplicate detection
-* AI-based defect analysis
-* AI resolution assistance
+* Vector Embeddings
+* Semantic Search
+* Retrieval-Augmented Generation (RAG)
 
 ## Development Tools
 
 * Git
 * GitHub
-* VS Code
-* Cline
-* Docker / Docker Compose where configured
+* Visual Studio Code
+* npm
+* Python virtual environment
 
 ---
 
-# 🏗️ System Architecture
+# 22. Project Structure
 
 ```text
-                    ┌─────────────────────┐
-                    │       Users         │
-                    │ Reporter / Developer│
-                    │ QA / PM / Admin     │
-                    └──────────┬──────────┘
-                               │
-                               ▼
-                    ┌─────────────────────┐
-                    │   React Frontend    │
-                    │  TypeScript + UI    │
-                    └──────────┬──────────┘
-                               │ REST API
-                               ▼
-                    ┌─────────────────────┐
-                    │    FastAPI Backend  │
-                    │ Authentication/RBAC │
-                    └──────────┬──────────┘
-                               │
-             ┌─────────────────┼─────────────────┐
-             ▼                 ▼                 ▼
-     ┌──────────────┐  ┌──────────────┐  ┌───────────────┐
-     │ PostgreSQL / │  │ AI Services  │  │ Notification  │
-     │ SQLAlchemy   │  │ NLP/Embeddings│ │ & Activity    │
-     └──────────────┘  └──────────────┘  └───────────────┘
-```
-
----
-
-# 📁 Project Structure
-
-```text
-BugFlow/
+BUGFLOW/
 │
 ├── backend/
+│   ├── alembic/
+│   │   └── versions/
+│   │       └── 003_milestone3_ai.py
+│   │
 │   ├── app/
 │   │   ├── api/
+│   │   │   └── routes/
+│   │   │       ├── chat.py
+│   │   │       ├── feedback.py
+│   │   │       ├── risk.py
+│   │   │       ├── dashboard.py
+│   │   │       ├── issues.py
+│   │   │       ├── project.py
+│   │   │       ├── sprint.py
+│   │   │       └── user.py
+│   │   │
+│   │   ├── core/
+│   │   ├── db/
 │   │   ├── models/
+│   │   │   └── milestone3.py
 │   │   ├── schemas/
 │   │   ├── services/
-│   │   ├── utils/
-│   │   ├── db/
+│   │   │   ├── rag.py
+│   │   │   └── risk.py
 │   │   └── main.py
 │   │
-│   └── requirements.txt
+│   ├── tests/
+│   │   └── test_milestone3.py
+│   │
+│   ├── .env
+│   ├── requirements.txt
+│   └── README.md
 │
 ├── frontend/
 │   ├── src/
 │   │   ├── components/
+│   │   │   ├── ChatAssistant.tsx
+│   │   │   ├── Layout.tsx
+│   │   │   └── Sidebar.tsx
+│   │   │
 │   │   ├── pages/
-│   │   ├── lib/
-│   │   └── ...
+│   │   │   ├── DashboardPage.tsx
+│   │   │   ├── AnalyticsPage.tsx
+│   │   │   ├── IssueDetailPage.tsx
+│   │   │   └── RiskRadarPage.tsx
+│   │   │
+│   │   └── lib/
+│   │       ├── api.ts
+│   │       └── types.ts
 │   │
 │   └── package.json
 │
-├── scripts/
+├── .github/
+│   └── workflows/
+│       └── ci.yml
 │
-├── docker-compose.yml
-├── Dockerfile
-└── README.md
+├── README.md
+└── .gitignore
 ```
 
 ---
 
-# 🚀 Getting Started
+# 23. Environment Setup
 
-## 1. Clone the Repository
+## Prerequisites
+
+Recommended environment:
+
+```text
+Python 3.12
+Node.js
+npm
+Git
+```
+
+Python 3.12 is used by the project's CI environment.
+
+---
+
+# 24. Backend Setup
+
+Open a terminal:
 
 ```bash
-git clone https://github.com/saisruthi0606-collab/Bug-Flow.git
-cd Bug-Flow
+cd backend
 ```
 
----
+Create a Python virtual environment:
 
-## 2. Backend Setup
+```bash
+py -3.12 -m venv .venv
+```
 
-Create and activate a virtual environment.
+Activate it on Windows:
 
-### Windows
-
-```powershell
-python -m venv .venv
+```bash
 .venv\Scripts\activate
 ```
 
 Install dependencies:
 
-```powershell
-pip install -r backend/requirements.txt
-```
-
-Start the backend:
-
-```powershell
-cd backend
-python -m uvicorn app.main:app --reload
-```
-
-Backend:
-
-```text
-http://127.0.0.1:8000
+```bash
+pip install -r requirements.txt
 ```
 
 ---
 
-# 3. Frontend Setup
+# 25. Configure Gemini
+
+Create:
+
+```text
+backend/.env
+```
+
+Add:
+
+```env
+GEMINI_API_KEY=YOUR_GEMINI_API_KEY
+```
+
+Optional model:
+
+```env
+GEMINI_MODEL=gemini-3.6-flash
+```
+
+Example:
+
+```env
+GEMINI_API_KEY=your_actual_key_here
+GEMINI_MODEL=gemini-3.6-flash
+```
+
+Do not commit `.env` to GitHub.
+
+---
+
+# 26. Run Backend
+
+From the `backend` directory:
+
+```bash
+.venv\Scripts\python.exe -m uvicorn app.main:app --reload
+```
+
+The backend will normally run at:
+
+```text
+http://localhost:8000
+```
+
+---
+
+# 27. Run Frontend
 
 Open another terminal:
 
-```powershell
+```bash
 cd frontend
+```
+
+Install dependencies:
+
+```bash
 npm install
+```
+
+Run the development server:
+
+```bash
 npm run dev
 ```
 
-Open the URL displayed by Vite.
+The frontend will normally be available at:
+
+```text
+http://localhost:3000
+```
 
 ---
 
-# 🧪 Testing
+# 28. Database Migration
 
-## Backend
+Milestone 3 uses an additive database migration.
 
-```powershell
-cd backend
-python -m pytest
+Migration:
+
+```text
+003_milestone3_ai
 ```
+
+It adds the required AI chat and feedback tables while preserving existing application data.
+
+---
+
+# 29. Testing
+
+## Backend Compile Check
+
+```bash
+.venv\Scripts\python.exe -m compileall app
+```
+
+Expected:
+
+```text
+Compilation successful
+```
+
+## Backend Tests
+
+```bash
+.venv\Scripts\python.exe -m pytest
+```
+
+Backend testing should be performed using the supported Python 3.12 environment.
 
 ## Frontend Build
 
-```powershell
-cd frontend
-npm run build
+```bash
+npm.cmd run build
+```
+
+This performs:
+
+* TypeScript checking
+* Production compilation
+* Vite build
+
+---
+
+# 30. CI/CD
+
+BugFlow includes a GitHub Actions workflow:
+
+```text
+.github/workflows/ci.yml
+```
+
+The workflow runs on:
+
+* Push
+* Pull Request
+
+The CI pipeline performs:
+
+### Backend
+
+* Python environment setup
+* Dependency installation
+* Backend tests
+
+### Frontend
+
+* Node environment setup
+* npm dependency installation
+* Production build
+
+This helps detect build and testing problems before changes are merged.
+
+---
+
+# 31. AI Chat Data Flow
+
+The complete AI chatbot flow is:
+
+```text
+User
+ ↓
+Chat Assistant
+ ↓
+POST /api/chat/ask
+ ↓
+JWT Authentication
+ ↓
+Intent Detection
+ ↓
+ ┌───────────────────────┐
+ │                       │
+Normal Conversation   BugFlow Question
+ │                       │
+ ↓                       ↓
+Gemini                RAG Retrieval
+                         ↓
+                  Permission Filtering
+                         ↓
+                  Relevant Issues
+                         ↓
+                  Comments / Activity
+                         ↓
+                  Historical Context
+                         ↓
+                       Gemini
+                         ↓
+                  Grounded Response
+                         ↓
+                  Sources + Answer
+                         ↓
+                  Chat History
+                         ↓
+                  AI Feedback
 ```
 
 ---
 
-# 🔄 Example End-to-End Workflow
+# 32. Example AI Workflow
+
+For a question such as:
 
 ```text
-Reporter
-   │
-   ├── Create Project
-   │
-   ├── Report Defect
-   │
-   ├── AI Analysis
-   │
-   ├── Duplicate Detection
-   │
-   └── Assign Developer
-          │
-          ▼
-Developer
-   │
-   ├── Notification
-   ├── Analyze Defect
-   ├── Semantic Search
-   ├── Resolution Assistance
-   ├── Add Comments
-   ├── Fix Defect
-   └── Mark Resolved
-          │
-          ▼
-QA Tester
-   │
-   ├── Test Defect
-   ├── Verify Fix
-   │
-   └── Reopen if Failed
-          │
-          ▼
-Project Manager
-   │
-   └── Monitor Project/Sprint Progress
-          │
-          ▼
-       Closed
+What issues are related to login authentication?
 ```
 
-## Milestone 3
+BugFlow:
 
-Milestone 3 extends the existing BugFlow architecture with role-scoped analytics (categories, closed issues, developer workload, resolution time, and AI feedback), a transparent Defect Risk Radar, grounded AI chat, and feedback capture. Existing issue AI, semantic search, duplicate detection, authentication, lifecycle, and RBAC remain in place.
+1. Receives the authenticated request.
+2. Determines that the question is BugFlow-specific.
+3. Searches relevant permitted issues.
+4. Uses semantic similarity and fallback retrieval where required.
+5. Collects useful issue context.
+6. Sends the relevant context to Gemini.
+7. Generates a grounded answer.
+8. Displays relevant issue sources.
+9. Stores the conversation in chat history.
+10. Allows the user to provide AI feedback.
 
-### Gemini and RAG
+---
 
-Set `GEMINI_API_KEY` in the backend environment to enable Gemini generation (the default model is `gemini-3.6-flash`). Without a key, retrieval still works and the assistant reports that generation is not configured. Retrieval embeds the question with the existing 384-dimensional embedding service, ranks only issues visible to the authenticated user, and supplies issue details, comments, activity, and stored AI recommendations as context.
+# 33. AI Safety & Grounding
+
+The AI assistant is instructed to:
+
+* Use supplied BugFlow context.
+* Avoid inventing project facts.
+* Distinguish retrieved facts from suggestions.
+* Provide practical solutions.
+* Mention relevant issue IDs where available.
+* Show sources when possible.
+* Clearly state uncertainty.
+* Never expose secrets.
+* Never expose private credentials.
+
+The system should say when relevant information cannot be found instead of inventing an answer.
+
+---
+
+# 34. Milestone Completion
+
+## Milestone 1 — Foundation
+
+Status:
 
 ```text
-User → /api/chat/ask → question embedding → role-scoped top-k issues
-     → context builder → Gemini (optional) → grounded answer + sources → feedback
+COMPLETED
 ```
 
-Chat history is stored in `chat_messages`; AI ratings are stored in `ai_feedback`. Apply Alembic revision `003_milestone3_ai` for an existing database (development startup also creates additive tables safely).
+Includes:
 
-### New APIs
+* Database foundation
+* User management
+* Authentication
+* JWT
+* RBAC
+* Projects
+* Defect CRUD
+* Severity
+* Priority
+* Assignment
+* Dashboard
+* Protected routes
 
-- `POST /api/chat/ask` and `GET /api/chat/history` (JWT protected)
-- `POST /api/ai/feedback` (JWT protected)
-- `GET /api/risk` (JWT protected)
+---
 
-Interactive Swagger documentation remains available at `/docs`. Run backend tests with `python -m pytest` and the frontend check with `npm run build`. CI runs both through `.github/workflows/ci.yml` on pushes and pull requests.
+## Milestone 2 — Lifecycle & Intelligence
+
+Status:
+
+```text
+COMPLETED
+```
+
+Includes:
+
+* Extended defect lifecycle
+* Sprint management
+* Kanban board
+* Comments
+* Attachments
+* Activity history
+* Notifications
+* AI classification
+* Severity/priority assistance
+* Missing information detection
+* Duplicate detection
+* Semantic search
+* Resolution assistance
+* Root-cause assistance
+* Investigation guidance
+
+---
+
+## Milestone 3 — Advanced AI & Intelligence
+
+Status:
+
+```text
+COMPLETED
+```
+
+Includes:
+
+* Analytics
+* REST APIs
+* RAG
+* Gemini integration
+* AI chatbot
+* Normal conversational AI
+* BugFlow-aware AI questions
+* Chat history
+* AI feedback
+* Historical Resolution Intelligence
+* Defect Risk Radar
+* AI Bug Fix Impact Predictor
+* CI/CD
+* Documentation
+
+---
+
+# 35. Key Features Summary
+
+| Feature                            | Status    |
+| ---------------------------------- | --------- |
+| User Authentication                | Completed |
+| JWT Security                       | Completed |
+| RBAC                               | Completed |
+| Project Management                 | Completed |
+| Defect CRUD                        | Completed |
+| Defect Lifecycle                   | Completed |
+| Sprint Management                  | Completed |
+| Kanban Board                       | Completed |
+| Comments                           | Completed |
+| Attachments                        | Completed |
+| Activity History                   | Completed |
+| Notifications                      | Completed |
+| AI Classification                  | Completed |
+| Severity/Priority Assistance       | Completed |
+| Duplicate Detection                | Completed |
+| Semantic Search                    | Completed |
+| AI Resolution Assistance           | Completed |
+| Historical Resolution Intelligence | Completed |
+| RAG                                | Completed |
+| Gemini Integration                 | Completed |
+| AI Chatbot                         | Completed |
+| Chat History                       | Completed |
+| AI Feedback                        | Completed |
+| Analytics                          | Completed |
+| Defect Risk Radar                  | Completed |
+| AI Bug Fix Impact Predictor        | Completed |
+| REST APIs                          | Completed |
+| CI/CD                              | Completed |
+
+---
+
+# 36. Why BugFlow Stands Out
+
+BugFlow is not only a traditional defect tracking application.
+
+It combines:
+
+```text
+Defect Management
+        +
+Secure Authentication
+        +
+RBAC
+        +
+Lifecycle Management
+        +
+Collaboration
+        +
+AI Analysis
+        +
+Semantic Search
+        +
+RAG
+        +
+Generative AI
+        +
+Historical Resolution Intelligence
+        +
+Risk Prediction
+        +
+Fix Impact Prediction
+        +
+Analytics
+```
+
+This makes BugFlow an intelligent software engineering platform rather than a simple issue tracker.
+
+---
+
+# 37. Future Scope
+
+Possible future enhancements include:
+
+* Voice-based bug reporting
+* OCR-based error extraction
+* Automatic stack-trace analysis
+* AI-generated test cases
+* Release risk prediction
+* Cross-project analytics
+* CI/CD issue integration
+* Mobile applications
+* Advanced developer productivity analytics
+* Automated regression-test recommendations
+* Advanced AI-based code-change impact analysis
+
+---
+
+# 38. Security Reminder
+
+Never commit the following to GitHub:
+
+```text
+.env
+API keys
+Passwords
+JWT secrets
+Database credentials
+Private tokens
+```
+
+Use environment variables for sensitive configuration.
+
+Example:
+
+```env
+GEMINI_API_KEY=your_key_here
+```
+
+---
+
+# 39. Project Philosophy
+
+BugFlow is built around three stages:
+
+```text
+DETECT
+  ↓
+Identify and understand defects
+
+DEBUG
+  ↓
+Investigate, analyze and resolve defects
+
+DELIVER
+  ↓
+Verify, close and improve software quality
+```
+
+---
+
+# 40. Final Project Status
+
+```text
+MILESTONE 1 — FOUNDATION
+                ✓ COMPLETED
+
+MILESTONE 2 — LIFECYCLE & INTELLIGENCE
+                ✓ COMPLETED
+
+MILESTONE 3 — ADVANCED AI & INTELLIGENCE
+                ✓ COMPLETED
+```
+
+BugFlow now provides a complete intelligent defect-management workflow combining full-stack application development, secure APIs, database management, AI-assisted defect analysis, RAG, generative AI, risk intelligence, fix-impact prediction, analytics, and automated CI/CD.
+
+---
+
+# BUGFLOW
+
+## Detect. Debug. Deliver.
+
+An intelligent defect tracking platform for modern software teams.
+
+````
+
+### One important thing amma
+
+Before you push this README, **don't put your actual Gemini key anywhere in it**. Keep only:
+
+```env
+GEMINI_API_KEY=YOUR_GEMINI_API_KEY
+````
+
+Your actual key should stay only in `backend/.env`, and `.env` should be in `.gitignore`.
+
+Then:
+
+```bash
+git add .
+git commit -m "Update README for completed Milestone 3"
+git push origin main
+```
