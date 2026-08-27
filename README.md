@@ -1,10 +1,3 @@
-Yes amma ❤️ Since **Milestone 3 is completed and manually verified**, replace your current `README.md` completely with the following.
-
-I’ve kept it aligned with your actual BugFlow features: Milestones 1–3, JWT/RBAC, AI analysis, RAG, Gemini, chatbot, chat history, feedback, Risk Radar, Analytics, and the **AI Bug Fix Impact Predictor**. The original project documentation also describes the chatbot, historical resolution intelligence, RAG source handling, security, migrations, and UI requirements. 
-
-## Copy-paste entire README.md
-
-````markdown
 # BUGFLOW — Intelligent Defect Tracking & AI-Assisted Bug Management
 
 BugFlow is an intelligent defect tracking and management platform designed to help software teams report, track, analyze, prioritize, resolve, and monitor software defects throughout their complete lifecycle.
