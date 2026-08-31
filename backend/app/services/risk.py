@@ -43,4 +43,4 @@ def risk_for_issue(issue: Issue, db: Session) -> dict:
             reasons.append("Assigned developer has high unresolved workload")
     score = min(100, score)
     level = "Critical" if score >= 75 else "High" if score >= 50 else "Medium" if score >= 25 else "Low"
-    return {"issue_id": issue.id, "title": issue.title, "severity": issue.severity, "priority": issue.priority, "status": issue.status, "risk_score": score, "risk_level": level, "reasons": reasons[:5] or ["No elevated risk factors detected"]}
+    return {"issue_id": issue.id, "title": issue.title, "severity": issue.severity, "priority": issue.priority, "status": issue.status, "updated_at": issue.updated_at, "risk_score": score, "risk_level": level, "reasons": reasons[:5] or ["No elevated risk factors detected"]}

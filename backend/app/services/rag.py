@@ -58,7 +58,7 @@ def _document(issue: Issue, db: Session) -> tuple[str, dict]:
         "Comments: " + " | ".join(c.body for c in comments) if comments else "",
         "Activity: " + " | ".join(f"{a.action}: {a.details or ''}" for a in activities) if activities else "",
     ]))
-    return text, {"issue_id": issue.id, "title": issue.title, "status": issue.status, "root_cause": root_cause, "previous_resolution": resolution, "comments": [c.body for c in comments]}
+    return text, {"issue_id": issue.id, "title": issue.title, "status": issue.status, "severity": issue.severity, "priority": issue.priority, "root_cause": root_cause, "previous_resolution": resolution, "historical_resolution_used": bool(resolution and issue.status in {"Resolved", "Verified", "Closed"}), "comments": [c.body for c in comments]}
 
 
 def retrieve(message: str, db: Session, user: User, limit: int = 6) -> list[dict]:
@@ -134,4 +134,12 @@ def _generate(prompt: str) -> str:
 
 
 def source_payload(sources: list[dict]) -> list[dict]:
-    return [{key: value for key, value in source.items() if key != "context"} for source in sources]
+    public_keys = {"issue_id", "title", "status", "severity", "priority", "similarity", "historical_resolution_used"}
+    return [{key: value for key, value in source.items() if key in public_keys} for source in sources]
+
+
+def evidence_payload(sources: list[dict]) -> dict:
+    resolved = {"Resolved", "Verified", "Closed"}
+    scores = [source.get("similarity", 0) for source in sources]
+    confidence = "No Evidence" if not sources else "High" if max(scores) >= 70 and len(sources) >= 2 else "Medium" if max(scores) >= 40 else "Low"
+    return {"count": len(sources), "resolved_count": sum(source.get("status") in resolved for source in sources), "active_count": sum(source.get("status") not in resolved for source in sources), "confidence": confidence, "historical_resolution_count": sum(bool(source.get("historical_resolution_used")) for source in sources)}

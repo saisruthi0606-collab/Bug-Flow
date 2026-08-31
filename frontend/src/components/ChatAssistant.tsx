@@ -3,9 +3,10 @@ import { Bot, Plus, Send, ThumbsDown, ThumbsUp, X } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { api } from '../lib/api'
 
-type Source = { issue_id: number; title: string; similarity?: number }
-type Reply = { id: number; answer: string; sources: Source[] }
-type ChatMessage = { id: string | number; role: 'user' | 'assistant'; content: string; sources?: Source[] }
+type Source = { issue_id: number; title: string; status?: string; severity?: string; priority?: string; similarity?: number; historical_resolution_used?: boolean }
+type Evidence = { count: number; resolved_count: number; active_count: number; confidence: string; historical_resolution_count: number }
+type Reply = { id: number; answer: string; sources: Source[]; evidence?: Evidence | null }
+type ChatMessage = { id: string | number; role: 'user' | 'assistant'; content: string; sources?: Source[]; evidence?: Evidence | null }
 
 const initialGreeting: ChatMessage = {
   id: 'initial-greeting',
@@ -64,7 +65,7 @@ export default function ChatAssistant() {
       const response = await api.post<Reply>('/api/chat/ask', { message: submittedMessage, conversation_id: activeId })
       if (historyRequestId.current === conversationId && activeConversationId.current === activeId) {
         setReply(response.data)
-        setMessages(current => [...current, { id: response.data.id, role: 'assistant', content: response.data.answer, sources: response.data.sources }])
+          setMessages(current => [...current, { id: response.data.id, role: 'assistant', content: response.data.answer, sources: response.data.sources, evidence: response.data.evidence }])
       }
     } catch (requestError: any) {
       const detail = requestError?.response?.data?.detail
@@ -99,7 +100,7 @@ export default function ChatAssistant() {
       {open && <section className="mb-3 w-[min(24rem,calc(100vw-2rem))] rounded-3xl border border-border bg-card p-4 shadow-glow">
         <div className="flex items-center justify-between"><div className="flex items-center gap-2 font-semibold"><Bot size={18} className="text-primary" /> BugFlow Assistant</div><div className="flex items-center gap-2"><button type="button" onClick={startNewChat} className="flex items-center gap-1 text-xs font-medium text-primary hover:underline"><Plus size={14} /> New Chat</button><button aria-label="Close assistant" onClick={() => setOpen(false)} className="text-muted-foreground"><X size={18} /></button></div></div>
         <p className="mt-2 text-xs text-muted-foreground">Ask about issues, previous resolutions, risk, or project trends.</p>
-        {messages.length > 0 && <div className="mt-3 max-h-80 space-y-3 overflow-y-auto">{messages.map(item => <div key={item.id} className={`rounded-xl border border-border p-3 text-sm whitespace-pre-wrap ${item.role === 'user' ? 'ml-6 bg-primary/10' : 'mr-6 bg-background'}`}><p className="mb-1 text-xs font-medium text-muted-foreground">{item.role === 'user' ? 'You' : 'Assistant'}</p>{item.content}{item.role === 'assistant' && item.sources && item.sources.length > 0 && <div className="mt-3 border-t border-border pt-2"><p className="text-xs font-medium text-muted-foreground">Sources</p>{item.sources.map(source => <Link key={source.issue_id} to={`/issues/${source.issue_id}`} className="mt-1 block text-xs text-primary hover:underline">BUG-{source.issue_id} — {source.title}</Link>)}</div>}</div>)}</div>}
+        {messages.length > 0 && <div className="mt-3 max-h-80 space-y-3 overflow-y-auto">{messages.map(item => <div key={item.id} className={`rounded-xl border border-border p-3 text-sm whitespace-pre-wrap ${item.role === 'user' ? 'ml-6 bg-primary/10' : 'mr-6 bg-background'}`}><p className="mb-1 text-xs font-medium text-muted-foreground">{item.role === 'user' ? 'You' : 'Assistant'}</p>{item.content}{item.role === 'assistant' && item.evidence && <details className="mt-3 border-t border-border pt-2"><summary className="cursor-pointer text-xs font-medium text-primary">Why this answer?</summary><div className="mt-2 space-y-2 text-xs text-muted-foreground"><p>Evidence Used · {item.evidence.count} retrieved · {item.evidence.resolved_count} resolved/verified/closed · {item.evidence.active_count} active</p><p>Evidence Confidence: <span className="font-medium text-foreground">{item.evidence.confidence}</span></p>{item.evidence.historical_resolution_count > 0 && <p>Historical Resolution Evidence: {item.evidence.historical_resolution_count} source(s) contributed.</p>}{item.sources?.map(source => <Link key={source.issue_id} to={`/issues/${source.issue_id}`} className="block text-primary hover:underline">BUG-{source.issue_id} — {source.title} · {source.similarity ?? '—'}% · {source.status || 'Status unavailable'} · {source.severity || 'Severity unavailable'} / {source.priority || 'Priority unavailable'}</Link>)}</div></details>}{item.role === 'assistant' && !item.evidence && item.sources && item.sources.length > 0 && <div className="mt-3 border-t border-border pt-2"><p className="text-xs font-medium text-muted-foreground">Sources</p>{item.sources.map(source => <Link key={source.issue_id} to={`/issues/${source.issue_id}`} className="mt-1 block text-xs text-primary hover:underline">BUG-{source.issue_id} — {source.title}</Link>)}</div>}</div>)}</div>}
         {reply && <div className="mt-3 flex items-center gap-2"><button onClick={() => sendFeedback('helpful')} className="rounded-lg border border-border p-1.5" aria-label="Helpful"><ThumbsUp size={14} /></button><button onClick={() => sendFeedback('not_helpful')} className="rounded-lg border border-border p-1.5" aria-label="Not helpful"><ThumbsDown size={14} /></button><span className="text-xs text-muted-foreground">{feedback}</span></div>}
         {error && <p className="mt-3 text-sm text-rose-400">{error}</p>}
         <form onSubmit={ask} className="mt-3 flex gap-2"><input value={message} onChange={event => setMessage(event.target.value)} maxLength={4000} placeholder="Ask BugFlow AIâ€¦" className="min-w-0 flex-1 rounded-xl border border-border bg-background px-3 py-2 text-sm" /><button disabled={loading} className="rounded-xl bg-primary px-3 disabled:opacity-60" aria-label="Ask assistant"><Send size={16} /></button></form>

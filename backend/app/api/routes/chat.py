@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from ...db.database import get_db
 from ...models.milestone3 import ChatMessage
 from ...models.user import User
-from ...services.rag import answer, conversational_answer, is_bugflow_query, retrieve, source_payload
+from ...services.rag import answer, conversational_answer, evidence_payload, is_bugflow_query, retrieve, source_payload
 from ...utils.auth import get_current_user
 
 router = APIRouter()
@@ -35,7 +35,7 @@ def ask(payload: ChatAsk, db: Session = Depends(get_db), current_user: User = De
         db.rollback()
         raise HTTPException(status_code=503, detail="AI service is temporarily unavailable. Please try again.")
     public_sources = source_payload(sources)
-    return {"id": db_message.id, "answer": response, "sources": public_sources, "retrieved_issues": public_sources}
+    return {"id": db_message.id, "answer": response, "sources": public_sources, "retrieved_issues": public_sources, "evidence": evidence_payload(sources) if is_bugflow_query(message) else None}
 
 
 @router.get("/history")
