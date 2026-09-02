@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import Layout from '../components/Layout'
 import { api } from '../lib/api'
-import type { Activity, AiInvestigation, Attachment, Comment, Issue, MissingInfoWarning, Recommendation, UserListItem } from '../lib/types'
+import type { Activity, AiInvestigation, Attachment, Comment, ImpactPrediction, Issue, MissingInfoWarning, Recommendation, UserListItem } from '../lib/types'
 
 const NEXT: Record<string, string | undefined> = {
   'Open': 'In Progress',
@@ -22,6 +22,12 @@ export default function IssueDetailPage() {
   const { data: comments = [], refetch: refetchComments } = useQuery<Comment[]>({ queryKey: ['comments', id], queryFn: async () => (await api.get(`/api/issues/${id}/comments`)).data })
   const { data: attachments = [], refetch: refetchAttachments } = useQuery<Attachment[]>({ queryKey: ['attachments', id], queryFn: async () => (await api.get(`/api/issues/${id}/attachments`)).data })
   const { data: activities = [], refetch: refetchActivities } = useQuery<Activity[]>({ queryKey: ['activities', id], queryFn: async () => (await api.get(`/api/issues/${id}/activities`)).data })
+  const { data: impact } = useQuery<ImpactPrediction>({
+    queryKey: ['impact-predictor', id],
+    queryFn: async () => (await api.get(`/api/issues/${id}/impact-predictor`)).data,
+    enabled: Boolean(id),
+    refetchInterval: (query) => query.state.data?.status === 'pending' ? 3000 : false,
+  })
   const { data: users = [] } = useQuery<UserListItem[]>({ queryKey: ['users'], queryFn: async () => (await api.get('/api/users')).data })
   const [comment, setComment] = useState('')
   const [editingComment, setEditingComment] = useState<number | null>(null)
@@ -389,6 +395,26 @@ export default function IssueDetailPage() {
                 </ul>
               )}
             </div>
+          </section>
+
+          {/* AI Bug Fix Impact Predictor — follows the issue endpoint's existing RBAC. */}
+          <section className="rounded-xl border border-border bg-card p-6">
+            <div className="flex items-center justify-between gap-3">
+              <h3 className="text-lg font-semibold">AI Fix Impact</h3>
+              {impact?.status === 'pending' && <span className="text-xs text-muted-foreground">Generating enhanced AI analysis...</span>}
+            </div>
+            {!impact && <p className="mt-3 text-sm text-muted-foreground">AI impact analysis is being prepared.</p>}
+            {impact && <div className="mt-3 space-y-3 text-sm">
+              <div className="flex flex-wrap gap-2">
+                <span className="rounded-full bg-primary/10 px-3 py-1">Impact: <strong>{impact.impact_level.toUpperCase()}</strong></span>
+                <span className="rounded-full bg-accent/10 px-3 py-1">Risk: <strong>{impact.regression_risk.toUpperCase()}</strong></span>
+                {impact.confidence !== null && <span className="rounded-full bg-background px-3 py-1">Confidence: <strong>{impact.confidence}%</strong></span>}
+              </div>
+              <div><strong>Factors</strong><ul className="mt-1 list-disc space-y-1 pl-5"><li>Severity: {issue.severity}</li><li>Priority: {issue.priority}</li><li>Status: {issue.status}</li>{impact.affected_areas.map((area) => <li key={area}>{area}</li>)}</ul></div>
+              <div><strong>Why</strong><p className="mt-1">{impact.summary}</p></div>
+              <div><strong>Recommended action</strong><p className="mt-1">{impact.recommended_precautions.join(' ')}</p></div>
+              {impact.status === 'unavailable' && <p className="text-amber-500">AI-enhanced explanation is currently unavailable.</p>}
+            </div>}
           </section>
 
           {/* AI Analysis */}

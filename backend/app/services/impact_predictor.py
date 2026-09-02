@@ -1,6 +1,7 @@
 """Structured Gemini predictions for the likely impact of fixing an issue."""
 import json
 import re
+import hashlib
 
 from pydantic import BaseModel, Field, field_validator
 from sqlalchemy.orm import Session
@@ -25,7 +26,7 @@ class ImpactPrediction(BaseModel):
     possible_side_effects: list[str] = Field(min_length=1)
     recommended_testing: list[str] = Field(min_length=1)
     recommended_precautions: list[str] = Field(min_length=1)
-    confidence: int = Field(ge=0, le=100)
+    confidence: int | None = Field(default=None, ge=0, le=100)
     summary: str = Field(min_length=1)
 
     @field_validator("impact_level")
@@ -65,6 +66,38 @@ def _parse_response(text: str) -> ImpactPrediction:
     if fenced:
         cleaned = fenced.group(1)
     return ImpactPrediction.model_validate(json.loads(cleaned))
+
+
+def predictor_signature(issue: Issue, db: Session) -> str:
+    comments = db.query(Comment).filter(Comment.issue_id == issue.id).order_by(Comment.created_at.asc()).all()
+    activities = db.query(Activity).filter(Activity.issue_id == issue.id).order_by(Activity.created_at.asc()).all()
+    source = {
+        "title": issue.title, "description": issue.description, "status": issue.status,
+        "priority": issue.priority, "severity": issue.severity, "category": issue.category,
+        "assigned_to": issue.assigned_to, "project_id": issue.project_id, "sprint_id": issue.sprint_id,
+        "comments": [(c.body, c.updated_at.isoformat()) for c in comments],
+        "activities": [(a.action, a.details, a.created_at.isoformat()) for a in activities],
+    }
+    return hashlib.sha256(json.dumps(source, sort_keys=True, default=str).encode()).hexdigest()
+
+
+def baseline_impact(issue: Issue, db: Session) -> ImpactPrediction:
+    severity = issue.severity or "Unknown"
+    priority = issue.priority or "Unknown"
+    status = issue.status or "Unknown"
+    score = {"Critical": 4, "High": 3, "Medium": 2, "Low": 1}.get(severity, 0)
+    score += {"High": 2, "Medium": 1, "Low": 0}.get(priority, 0)
+    impact = "Critical" if score >= 6 else "High" if score >= 4 else "Medium" if score >= 2 else "Low"
+    risk = "High" if impact in {"Critical", "High"} else "Medium" if impact == "Medium" else "Low"
+    insufficient = not issue.title.strip() or not (issue.description or '').strip()
+    summary = ("Impact analysis is limited because insufficient issue information is available."
+               if insufficient else f"{severity} severity and {priority} priority indicate {impact.lower()} fix impact.")
+    return ImpactPrediction(
+        impact_level=impact, regression_risk=risk, affected_areas=[issue.category or "Issue functionality"],
+        expected_effects=["Fix the reported behavior"], possible_side_effects=["Related functionality may require regression testing"],
+        recommended_testing=["Verify the reported scenario", "Run regression tests for related functionality"],
+        recommended_precautions=["Review the change before closure"], confidence=None, summary=summary,
+    )
 
 
 def predict_impact(issue: Issue, db: Session, user: User) -> ImpactPrediction:

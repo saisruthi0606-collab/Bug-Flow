@@ -64,3 +64,15 @@ class AIRecommendation(Base):
     reasoning = Column(Text, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     issue = relationship("Issue", backref="ai_recommendation", uselist=False)
+
+
+class ImpactPredictionRecord(Base):
+    """Shared, versioned predictor output for an issue."""
+    __tablename__ = "impact_prediction_records"
+    id = Column(Integer, primary_key=True, index=True)
+    issue_id = Column(Integer, ForeignKey("issues.id"), nullable=False, unique=True, index=True)
+    signature = Column(String(64), nullable=False)
+    status = Column(String(20), nullable=False, default="pending")
+    payload = Column(Text, nullable=False)
+    generated_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    issue = relationship("Issue", backref="impact_prediction", uselist=False)

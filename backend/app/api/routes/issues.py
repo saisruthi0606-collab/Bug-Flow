@@ -1,13 +1,15 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
+import json
+from ...db.database import SessionLocal
 from sqlalchemy.orm import Session
 from ...db.database import get_db
-from ...models.collaboration import AIRecommendation, Comment
+from ...models.collaboration import AIRecommendation, Comment, ImpactPredictionRecord
 from ...models.issue import Issue
 from ...models.user import User
 from ...schemas.issue import DuplicateCandidate, DuplicateCheck, IssueCreate, IssueOut, IssueUpdate
 from ...services.activity import log_activity
 from ...services.duplicate_detection import create_embedding, deserialize_embedding, find_duplicates, serialize_embedding, similarity
-from ...services.impact_predictor import predict_impact
+from ...services.impact_predictor import baseline_impact, predict_impact, predictor_signature
 from ...utils.auth import get_current_user
 from .ai_service import get_ai_suggestions
 
@@ -209,15 +211,46 @@ def get_recommendation(issue_id: int, db: Session = Depends(get_db), current_use
     return recommendation
 
 
-@router.post("/{issue_id}/impact-predictor")
-def impact_predictor(issue_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    issue = get_issue_or_404(issue_id, db, current_user)
+def _enhance_impact(issue_id: int, signature: str, user_id: int):
+    db = SessionLocal()
     try:
-        return predict_impact(issue, db, current_user).model_dump()
-    except RuntimeError as exc:
-        raise HTTPException(status_code=503, detail=str(exc))
-    except ValueError as exc:
-        raise HTTPException(status_code=502, detail=str(exc))
+        issue = db.query(Issue).filter(Issue.id == issue_id).first()
+        record = db.query(ImpactPredictionRecord).filter(ImpactPredictionRecord.issue_id == issue_id).first()
+        user = db.query(User).filter(User.id == user_id).first()
+        if not issue or not record or record.signature != signature or not user:
+            return
+        try:
+            result = predict_impact(issue, db, user)
+            record.payload = json.dumps(result.model_dump())
+            record.status = "complete"
+        except Exception:
+            # The deterministic baseline remains the useful result when Gemini fails.
+            record.status = "unavailable"
+        db.commit()
+    finally:
+        db.close()
+
+
+def _impact_result(issue: Issue, db: Session, current_user: User, background_tasks: BackgroundTasks):
+    signature = predictor_signature(issue, db)
+    record = db.query(ImpactPredictionRecord).filter(ImpactPredictionRecord.issue_id == issue.id).first()
+    if record and record.signature == signature:
+        return {**json.loads(record.payload), "status": record.status}
+    baseline = baseline_impact(issue, db).model_dump()
+    if not record:
+        record = ImpactPredictionRecord(issue_id=issue.id, signature=signature, status="pending", payload=json.dumps(baseline))
+        db.add(record)
+    else:
+        record.signature, record.status, record.payload = signature, "pending", json.dumps(baseline)
+    db.commit()
+    background_tasks.add_task(_enhance_impact, issue.id, signature, current_user.id)
+    return {**baseline, "status": "pending"}
+
+
+@router.api_route("/{issue_id}/impact-predictor", methods=["GET", "POST"])
+def impact_predictor(issue_id: int, background_tasks: BackgroundTasks, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    issue = get_issue_or_404(issue_id, db, current_user)
+    return _impact_result(issue, db, current_user, background_tasks)
 
 
 @router.get("/{issue_id}/missing-info")
