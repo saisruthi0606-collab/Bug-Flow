@@ -1401,22 +1401,3 @@ BugFlow now provides a complete intelligent defect-management workflow combining
 
 An intelligent defect tracking platform for modern software teams.
 
-````
-
-### One important thing amma
-
-Before you push this README, **don't put your actual Gemini key anywhere in it**. Keep only:
-
-```env
-GEMINI_API_KEY=YOUR_GEMINI_API_KEY
-````
-
-Your actual key should stay only in `backend/.env`, and `.env` should be in `.gitignore`.
-
-Then:
-
-```bash
-git add .
-git commit -m "Update README for completed Milestone 3"
-git push origin main
-```
