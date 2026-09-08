@@ -1,4 +1,4 @@
-from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Index, Integer, String, Text
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from ..db.database import Base
@@ -6,6 +6,12 @@ from ..db.database import Base
 
 class Issue(Base):
     __tablename__ = "issues"
+    __table_args__ = (
+        Index("ix_issues_project_status", "project_id", "status"),
+        Index("ix_issues_assignee_status", "assigned_to", "status"),
+        Index("ix_issues_sprint_status", "sprint_id", "status"),
+        Index("ix_issues_created_at", "created_at"),
+    )
 
     id = Column(Integer, primary_key=True, index=True)
     title = Column(String(255), nullable=False)

@@ -20,7 +20,10 @@ def create_project(project: ProjectCreate, db: Session = Depends(get_db), curren
 
 @router.get("", response_model=list[ProjectOut])
 def get_projects(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    return db.query(Project).filter(Project.created_by == current_user.id).all()
+    query = db.query(Project)
+    if current_user.role not in {"Admin", "Project Manager"}:
+        query = query.filter(Project.created_by == current_user.id)
+    return query.order_by(Project.created_at.desc()).all()
 
 
 @router.put("/{project_id}", response_model=ProjectOut)

@@ -1,12 +1,15 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react'
-import { Bot, Plus, Send, ThumbsDown, ThumbsUp, X } from 'lucide-react'
+import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from 'react'
+import { Bot, Camera, LoaderCircle, Mic, Plus, Send, ThumbsDown, ThumbsUp, X } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { api } from '../lib/api'
 
 type Source = { issue_id: number; title: string; status?: string; severity?: string; priority?: string; similarity?: number; historical_resolution_used?: boolean }
 type Evidence = { count: number; resolved_count: number; active_count: number; confidence: string; historical_resolution_count: number }
 type Reply = { id: number; answer: string; sources: Source[]; evidence?: Evidence | null }
-type ChatMessage = { id: string | number; role: 'user' | 'assistant'; content: string; sources?: Source[]; evidence?: Evidence | null }
+type ChatMessage = { id: string | number; role: 'user' | 'assistant'; content: string; sources?: Source[]; evidence?: Evidence | null; imageUrl?: string }
+type SpeechResultEvent = { results: ArrayLike<ArrayLike<{ transcript: string }>> }
+type SpeechRecognitionLike = { continuous: boolean; interimResults: boolean; lang: string; onresult: ((event: SpeechResultEvent) => void) | null; onerror: (() => void) | null; onend: (() => void) | null; start: () => void; stop: () => void }
+type SpeechRecognitionConstructor = new () => SpeechRecognitionLike
 
 const initialGreeting: ChatMessage = {
   id: 'initial-greeting',
@@ -22,8 +25,13 @@ export default function ChatAssistant() {
   const [error, setError] = useState('')
   const [feedback, setFeedback] = useState('')
   const [messages, setMessages] = useState<ChatMessage[]>([])
+  const [imageFile, setImageFile] = useState<File | null>(null)
+  const [imagePreview, setImagePreview] = useState('')
+  const [listening, setListening] = useState(false)
   const historyRequestId = useRef(0)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const imageInputRef = useRef<HTMLInputElement>(null)
+  const recognitionRef = useRef<SpeechRecognitionLike | null>(null)
   const activeConversationId = useRef(localStorage.getItem('bugflow_active_chat_conversation'))
 
   useEffect(() => {
@@ -31,6 +39,18 @@ export default function ChatAssistant() {
     const chatMessages = document.querySelector<HTMLElement>('.max-h-80')
     if (chatMessages) chatMessages.scrollTop = chatMessages.scrollHeight
   }, [messages, open])
+
+  useEffect(() => {
+    const handlePrefill = (event: Event) => {
+      const question = (event as CustomEvent<string>).detail
+      if (!question) return
+      setMessage(question)
+      setOpen(true)
+      setError('')
+    }
+    window.addEventListener('bugflow-assistant-prefill', handlePrefill)
+    return () => window.removeEventListener('bugflow-assistant-prefill', handlePrefill)
+  }, [])
 
   useEffect(() => {
     const requestId = historyRequestId.current
@@ -52,21 +72,72 @@ export default function ChatAssistant() {
       })
   }, [])
 
+  const handleImageChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+    if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type)) {
+      setError('Please choose a PNG, JPG/JPEG, or WEBP image.')
+      return
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setError('Images must be 5 MB or smaller.')
+      return
+    }
+    setImageFile(file)
+    setImagePreview(URL.createObjectURL(file))
+    setError('')
+  }
+
+  const toggleListening = () => {
+    const speechWindow = window as Window & { SpeechRecognition?: SpeechRecognitionConstructor; webkitSpeechRecognition?: SpeechRecognitionConstructor }
+    if (listening) {
+      recognitionRef.current?.stop()
+      return
+    }
+    const Recognition = speechWindow.SpeechRecognition ?? speechWindow.webkitSpeechRecognition
+    if (!Recognition) {
+      setError('Voice input is not supported by this browser.')
+      return
+    }
+    const recognition = new Recognition()
+    recognition.continuous = false
+    recognition.interimResults = false
+    recognition.lang = 'en-US'
+    recognition.onresult = event => setMessage(current => `${current} ${event.results[0][0].transcript}`.trim())
+    recognition.onerror = () => { setListening(false); setError('Microphone access was denied or voice input failed.') }
+    recognition.onend = () => setListening(false)
+    recognitionRef.current = recognition
+    setError('')
+    setListening(true)
+    recognition.start()
+  }
+
   const ask = async (event: FormEvent) => {
     event.preventDefault()
-    const submittedMessage = message.trim()
+    const submittedMessage = message.trim() || (imageFile ? 'Analyze this screenshot and identify any potential software defect.' : '')
     if (!submittedMessage) return
     const conversationId = historyRequestId.current
     const activeId = activeConversationId.current
-    setMessages(current => [...current, { id: `pending-${Date.now()}`, role: 'user', content: submittedMessage }])
+    const pendingImageUrl = imagePreview || undefined
+    setMessages(current => [...current, { id: `pending-${Date.now()}`, role: 'user', content: submittedMessage, imageUrl: pendingImageUrl }])
     setMessage('')
     setLoading(true); setError(''); setFeedback('')
     try {
-      const response = await api.post<Reply>('/api/chat/ask', { message: submittedMessage, conversation_id: activeId })
+      const request = imageFile ? (() => {
+        const formData = new FormData()
+        formData.append('image', imageFile)
+        formData.append('message', submittedMessage)
+        if (activeId) formData.append('conversation_id', activeId)
+        return api.post<Reply>('/api/chat/ask-image', formData)
+      })() : api.post<Reply>('/api/chat/ask', { message: submittedMessage, conversation_id: activeId })
+      const response = await request
       if (historyRequestId.current === conversationId && activeConversationId.current === activeId) {
         setReply(response.data)
           setMessages(current => [...current, { id: response.data.id, role: 'assistant', content: response.data.answer, sources: response.data.sources, evidence: response.data.evidence }])
       }
+      setImageFile(null)
+      setImagePreview('')
+      if (imageInputRef.current) imageInputRef.current.value = ''
     } catch (requestError: any) {
       const detail = requestError?.response?.data?.detail
       setError(typeof detail === 'string' ? detail : 'AI service is temporarily unavailable. Please try again.')
@@ -81,6 +152,9 @@ export default function ChatAssistant() {
     setOpen(true)
     setMessages(() => [initialGreeting])
     setMessage('')
+    setImageFile(null)
+    setImagePreview('')
+    if (imageInputRef.current) imageInputRef.current.value = ''
     setReply(null)
     setLoading(false)
     setError('')
@@ -100,10 +174,11 @@ export default function ChatAssistant() {
       {open && <section className="mb-3 w-[min(24rem,calc(100vw-2rem))] rounded-3xl border border-border bg-card p-4 shadow-glow">
         <div className="flex items-center justify-between"><div className="flex items-center gap-2 font-semibold"><Bot size={18} className="text-primary" /> BugFlow Assistant</div><div className="flex items-center gap-2"><button type="button" onClick={startNewChat} className="flex items-center gap-1 text-xs font-medium text-primary hover:underline"><Plus size={14} /> New Chat</button><button aria-label="Close assistant" onClick={() => setOpen(false)} className="text-muted-foreground"><X size={18} /></button></div></div>
         <p className="mt-2 text-xs text-muted-foreground">Ask about issues, previous resolutions, risk, or project trends.</p>
-        {messages.length > 0 && <div className="mt-3 max-h-80 space-y-3 overflow-y-auto">{messages.map(item => <div key={item.id} className={`rounded-xl border border-border p-3 text-sm whitespace-pre-wrap ${item.role === 'user' ? 'ml-6 bg-primary/10' : 'mr-6 bg-background'}`}><p className="mb-1 text-xs font-medium text-muted-foreground">{item.role === 'user' ? 'You' : 'Assistant'}</p>{item.content}{item.role === 'assistant' && item.evidence && <details className="mt-3 border-t border-border pt-2"><summary className="cursor-pointer text-xs font-medium text-primary">Why this answer?</summary><div className="mt-2 space-y-2 text-xs text-muted-foreground"><p>Evidence Used · {item.evidence.count} retrieved · {item.evidence.resolved_count} resolved/verified/closed · {item.evidence.active_count} active</p><p>Evidence Confidence: <span className="font-medium text-foreground">{item.evidence.confidence}</span></p>{item.evidence.historical_resolution_count > 0 && <p>Historical Resolution Evidence: {item.evidence.historical_resolution_count} source(s) contributed.</p>}{item.sources?.map(source => <Link key={source.issue_id} to={`/issues/${source.issue_id}`} className="block text-primary hover:underline">BUG-{source.issue_id} — {source.title} · {source.similarity ?? '—'}% · {source.status || 'Status unavailable'} · {source.severity || 'Severity unavailable'} / {source.priority || 'Priority unavailable'}</Link>)}</div></details>}{item.role === 'assistant' && !item.evidence && item.sources && item.sources.length > 0 && <div className="mt-3 border-t border-border pt-2"><p className="text-xs font-medium text-muted-foreground">Sources</p>{item.sources.map(source => <Link key={source.issue_id} to={`/issues/${source.issue_id}`} className="mt-1 block text-xs text-primary hover:underline">BUG-{source.issue_id} — {source.title}</Link>)}</div>}</div>)}</div>}
+        {messages.length > 0 && <div className="mt-3 max-h-80 space-y-3 overflow-y-auto">{messages.map(item => <div key={item.id} className={`rounded-xl border border-border p-3 text-sm whitespace-pre-wrap ${item.role === 'user' ? 'ml-6 bg-primary/10' : 'mr-6 bg-background'}`}><p className="mb-1 text-xs font-medium text-muted-foreground">{item.role === 'user' ? 'You' : 'Assistant'}</p>{item.imageUrl && <img src={item.imageUrl} alt="Uploaded screenshot" className="mb-2 max-h-32 rounded-lg border border-border object-contain" />}{item.content}{item.role === 'assistant' && item.evidence && <details className="mt-3 border-t border-border pt-2"><summary className="cursor-pointer text-xs font-medium text-primary">Why this answer?</summary><div className="mt-2 space-y-2 text-xs text-muted-foreground"><p>Evidence Used · {item.evidence.count} retrieved · {item.evidence.resolved_count} resolved/verified/closed · {item.evidence.active_count} active</p><p>Evidence Confidence: <span className="font-medium text-foreground">{item.evidence.confidence}</span></p>{item.evidence.historical_resolution_count > 0 && <p>Historical Resolution Evidence: {item.evidence.historical_resolution_count} source(s) contributed.</p>}{item.sources?.map(source => <Link key={source.issue_id} to={`/issues/${source.issue_id}`} className="block text-primary hover:underline">BUG-{source.issue_id} — {source.title} · {source.similarity ?? '—'}% · {source.status || 'Status unavailable'} · {source.severity || 'Severity unavailable'} / {source.priority || 'Priority unavailable'}</Link>)}</div></details>}{item.role === 'assistant' && !item.evidence && item.sources && item.sources.length > 0 && <div className="mt-3 border-t border-border pt-2"><p className="text-xs font-medium text-muted-foreground">Sources</p>{item.sources.map(source => <Link key={source.issue_id} to={`/issues/${source.issue_id}`} className="mt-1 block text-xs text-primary hover:underline">BUG-{source.issue_id} — {source.title}</Link>)}</div>}</div>)}</div>}
         {reply && <div className="mt-3 flex items-center gap-2"><button onClick={() => sendFeedback('helpful')} className="rounded-lg border border-border p-1.5" aria-label="Helpful"><ThumbsUp size={14} /></button><button onClick={() => sendFeedback('not_helpful')} className="rounded-lg border border-border p-1.5" aria-label="Not helpful"><ThumbsDown size={14} /></button><span className="text-xs text-muted-foreground">{feedback}</span></div>}
         {error && <p className="mt-3 text-sm text-rose-400">{error}</p>}
-        <form onSubmit={ask} className="mt-3 flex gap-2"><input value={message} onChange={event => setMessage(event.target.value)} maxLength={4000} placeholder="Ask BugFlow AIâ€¦" className="min-w-0 flex-1 rounded-xl border border-border bg-background px-3 py-2 text-sm" /><button disabled={loading} className="rounded-xl bg-primary px-3 disabled:opacity-60" aria-label="Ask assistant"><Send size={16} /></button></form>
+        {imagePreview && <div className="mt-3 flex items-center gap-2 rounded-xl border border-border bg-background p-2"><img src={imagePreview} alt="Selected screenshot preview" className="h-12 w-12 rounded-lg object-cover" /><button type="button" onClick={() => { setImageFile(null); setImagePreview(''); if (imageInputRef.current) imageInputRef.current.value = '' }} className="text-xs text-muted-foreground hover:text-foreground">Remove image</button></div>}
+        <form onSubmit={ask} className="mt-3 flex gap-2"><input ref={imageInputRef} type="file" accept="image/png,image/jpeg,image/webp" onChange={handleImageChange} className="hidden" /><input value={message} onChange={event => setMessage(event.target.value)} maxLength={4000} placeholder="Ask BugFlow AI..." className="min-w-0 flex-1 rounded-xl border border-border bg-background px-3 py-2 text-sm" /><button type="button" onClick={() => imageInputRef.current?.click()} disabled={loading} className="rounded-xl border border-border px-2 disabled:opacity-60" aria-label="Attach screenshot"><Camera size={16} /></button><button type="button" onClick={toggleListening} disabled={loading} className={`rounded-xl border border-border px-2 disabled:opacity-60 ${listening ? 'text-rose-400' : ''}`} aria-label={listening ? 'Stop voice input' : 'Start voice input'}>{listening ? <LoaderCircle size={16} className="animate-spin" /> : <Mic size={16} />}</button><button disabled={loading} className="rounded-xl bg-primary px-3 disabled:opacity-60" aria-label="Ask assistant"><Send size={16} /></button></form>
          <div ref={messagesEndRef} />
        </section>}
       <button onClick={() => setOpen(!open)} className="flex h-12 w-12 items-center justify-center rounded-full bg-primary text-foreground shadow-glow" aria-label="Open BugFlow assistant"><Bot size={22} /></button>

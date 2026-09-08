@@ -5,6 +5,8 @@ from sqlalchemy.orm import Session
 from ...db.database import get_db
 from ...models.collaboration import AIRecommendation, Comment, ImpactPredictionRecord
 from ...models.issue import Issue
+from ...models.project import Project
+from ...models.sprint import Sprint
 from ...models.user import User
 from ...schemas.issue import DuplicateCandidate, DuplicateCheck, IssueCreate, IssueOut, IssueUpdate
 from ...services.activity import log_activity
@@ -53,21 +55,42 @@ def can_manage_issue(issue: Issue, user: User) -> bool:
     return user.role in MANAGER_ROLES or issue.reporter == user.id or issue.assigned_to == user.id
 
 
+def can_access_project(project: Project, user: User) -> bool:
+    return user.role in MANAGER_ROLES or project.created_by == user.id
+
+
+def validate_project_and_sprint(project_id: int, sprint_id: int | None, db: Session, current_user: User) -> None:
+    project = db.query(Project).filter(Project.id == project_id).first()
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    if not can_access_project(project, current_user):
+        raise HTTPException(status_code=403, detail="Not enough permissions for this project")
+    if sprint_id is not None:
+        sprint = db.query(Sprint).filter(Sprint.id == sprint_id).first()
+        if not sprint:
+            raise HTTPException(status_code=404, detail="Sprint not found")
+        if sprint.project_id != project_id:
+            raise HTTPException(status_code=422, detail="Sprint must belong to the selected project")
+
+
 @router.post("/duplicates-check", response_model=list[DuplicateCandidate])
 def check_duplicates(payload: DuplicateCheck, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    candidates, _ = find_duplicates(db.query(Issue).all(), payload.title, payload.description, payload.project_id, limit=5)
+    visible_issues = [item for item in db.query(Issue).all() if can_view_issue(item, current_user)]
+    candidates, _ = find_duplicates(visible_issues, payload.title, payload.description, payload.project_id, limit=5)
     return candidates
 
 
 @router.post("", response_model=IssueOut)
 def create_issue(issue: IssueCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    validate_project_and_sprint(issue.project_id, issue.sprint_id, db, current_user)
     if issue.assigned_to is not None:
         assignee = db.query(User).filter(User.id == issue.assigned_to).first()
         if not assignee:
             raise HTTPException(status_code=422, detail="Assignee not found")
         if assignee.role != "Developer":
             raise HTTPException(status_code=422, detail="Only users with the Developer role can be assigned to issues")
-    candidates, embedding = find_duplicates(db.query(Issue).all(), issue.title, issue.description, issue.project_id)
+    visible_issues = [item for item in db.query(Issue).all() if can_view_issue(item, current_user)]
+    candidates, embedding = find_duplicates(visible_issues, issue.title, issue.description, issue.project_id)
     if candidates and not issue.confirm_duplicate:
         raise HTTPException(status_code=409, detail={"message": "Possible duplicate issues found", "duplicates": candidates})
     analysis = get_ai_suggestions(issue.description or "", title=issue.title)
@@ -175,7 +198,7 @@ def get_issues(
     if semantic and search:
         try:
             target = create_embedding(search)
-            all_issues = db.query(Issue).all()
+            all_issues = [item for item in db.query(Issue).all() if can_view_issue(item, current_user)]
             scored = []
             for issue in all_issues:
                 if not can_view_issue(issue, current_user):
@@ -271,11 +294,11 @@ def get_ai_investigation(issue_id: int, db: Session = Depends(get_db), current_u
     # find similar previous issues
     similar = []
     try:
-        all_issues = db.query(Issue).filter(Issue.id != issue_id).all()
+        all_issues = [item for item in db.query(Issue).filter(Issue.id != issue_id).all() if can_view_issue(item, current_user)]
         candidates, _ = find_duplicates(all_issues, issue.title, issue.description, issue.project_id, threshold=0.35, limit=5)
         similar = []
         for candidate in candidates:
-            related = db.query(Issue).filter(Issue.id == candidate["id"]).first()
+            related = next((item for item in all_issues if item.id == candidate["id"]), None)
             recommendation = db.query(AIRecommendation).filter(AIRecommendation.issue_id == candidate["id"]).first() if related else None
             related_comments = db.query(Comment).filter(Comment.issue_id == candidate["id"]).order_by(Comment.created_at.asc()).limit(5).all() if related else []
             similar.append({
@@ -298,6 +321,10 @@ def update_issue(issue_id: int, issue: IssueUpdate, db: Session = Depends(get_db
         raise HTTPException(status_code=403, detail="Not enough permissions")
 
     changes = issue.model_dump(exclude_unset=True)
+
+    target_project_id = changes.get("project_id", db_issue.project_id)
+    target_sprint_id = changes.get("sprint_id", db_issue.sprint_id)
+    validate_project_and_sprint(target_project_id, target_sprint_id, db, current_user)
 
     # Validate assignee exists and is a Developer
     if "assigned_to" in changes and changes["assigned_to"] is not None:

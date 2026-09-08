@@ -2,7 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import Layout from '../components/Layout'
-import { api } from '../lib/api'
+import { api, formatApiTimestamp } from '../lib/api'
 import type { Activity, AiInvestigation, Attachment, Comment, ImpactPrediction, Issue, MissingInfoWarning, Recommendation, UserListItem } from '../lib/types'
 
 const NEXT: Record<string, string | undefined> = {
@@ -303,7 +303,7 @@ export default function IssueDetailPage() {
                           )}
                           <div>
                             <div className="font-medium">{a.original_filename}</div>
-                            <div className="text-xs text-muted-foreground">{a.uploader_name} · {new Date(a.created_at).toLocaleString()}</div>
+                            <div className="text-xs text-muted-foreground">{a.uploader_name} · {formatApiTimestamp(a.created_at)}</div>
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
@@ -336,7 +336,7 @@ export default function IssueDetailPage() {
                   <div className="flex justify-between">
                     <div>
                       <div className="font-medium">{c.author_name || `User ${c.author_id}`}</div>
-                      <div className="text-xs text-muted-foreground">{new Date(c.created_at).toLocaleString()}</div>
+                      <div className="text-xs text-muted-foreground">{formatApiTimestamp(c.created_at)}</div>
                     </div>
                     <div className="flex items-center gap-2">
                       {me && (me.id === c.author_id || me.role === 'Admin') && (
@@ -374,7 +374,7 @@ export default function IssueDetailPage() {
                       <div className="text-sm"><strong>{a.actor_name || `User ${a.actor_id}`}</strong> <span className="text-muted-foreground">{a.action}</span></div>
                       {a.details && <div className="text-xs text-muted-foreground mt-1">{a.details}</div>}
                     </div>
-                    <div className="text-xs text-muted-foreground">{new Date(a.created_at).toLocaleString()}</div>
+                    <div className="text-xs text-muted-foreground">{formatApiTimestamp(a.created_at)}</div>
                   </div>
                 </div>
               ))}

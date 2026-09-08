@@ -14,7 +14,7 @@ type DashboardData = {
   issue_status: Array<{ status: string; count: number }>
   priority_distribution: Array<{ priority: string; count: number }>
   severity_distribution: Array<{ severity: string; count: number }>
-  sprint_summary: Array<{ id: number; name: string; issue_count: number; progress: number }>
+  sprint_summary: Array<{ id: number; name: string; project_name?: string; status: string; total_issues: number; completed_issues: number; remaining_issues: number; progress_percent: number | null; start_date?: string; end_date?: string }>
   recent_activity: Array<{ id:number; issue_id:number; action:string; details?:string; created_at:string }>
   duplicate_detection: { flagged_issues:number; total_issues:number }
   bug_trends: Array<{ date: string; count: number }>
@@ -45,7 +45,7 @@ export default function DashboardPage() {
   const lowPriority = data?.priority_distribution.find((item) => item.priority === 'Low')?.count ?? 0
 
   const trendRows = useMemo(() => data?.bug_trends ?? [], [data])
-  const aiHealthScore = data?.ai_health_score ?? 0
+  const aiHealthScore = data?.ai_health_score
   const aiReport = data?.ai_report ?? { summary: 'No AI report available.', risk_level: 'Low', insights: [], recommendations: [] }
   const similarIssues = data?.similar_issues ?? []
 
@@ -105,9 +105,9 @@ export default function DashboardPage() {
       </div>
 
       <div className="mt-8 grid gap-6 lg:grid-cols-3">
-        <section className="rounded-3xl border border-border bg-card p-6 shadow-glow"><h2 className="font-semibold text-foreground">Bugs by Severity</h2><div className="mt-4 space-y-2">{data?.severity_distribution.map(item => <div key={item.severity} className="flex justify-between text-sm"><span>{item.severity}</span><span>{item.count}</span></div>)}</div></section>
-        <section className="rounded-3xl border border-border bg-card p-6 shadow-glow"><h2 className="font-semibold text-foreground">Sprint Progress</h2><div className="mt-4 space-y-3">{data?.sprint_summary.map(s => <div key={s.id}><div className="flex justify-between text-sm"><span>{s.name}</span><span>{s.progress}%</span></div><div className="mt-1 h-2 bg-border"><div className="h-2 bg-primary" style={{width:`${s.progress}%`}} /></div></div>)}</div></section>
-        <section className="rounded-3xl border border-border bg-card p-6 shadow-glow"><h2 className="font-semibold text-foreground">Recent Activity</h2><div className="mt-4 space-y-2">{data?.recent_activity.slice(0,4).map(a => <p key={a.id} className="text-sm"><span className="font-medium">{a.action}</span><span className="text-muted-foreground"> {a.details}</span></p>)}</div><p className="mt-4 text-sm text-muted-foreground">Duplicates flagged: {data?.duplicate_detection.flagged_issues ?? 0}</p></section>
+        <section className="rounded-3xl border border-border bg-card p-6 shadow-glow"><h2 className="font-semibold text-foreground">Bugs by Severity</h2><div className="mt-4 space-y-2">{data?.severity_distribution.some(item => item.count > 0) ? data.severity_distribution.map(item => <div key={item.severity} className="flex justify-between text-sm"><span>{item.severity}</span><span>{item.count}</span></div>) : <p className="text-sm text-muted-foreground">No data available</p>}</div></section>
+        <section className="rounded-3xl border border-border bg-card p-6 shadow-glow"><div className="flex items-center justify-between gap-3"><h2 className="font-semibold text-foreground">Sprint Progress</h2><button type="button" onClick={() => window.dispatchEvent(new CustomEvent('bugflow-assistant-prefill', { detail: 'Summarize the current project health, sprint progress, and highest-risk defects. What should the team prioritize?' }))} className="text-xs font-medium text-primary hover:underline">Ask BugFlow Assistant</button></div><div className="mt-4 space-y-3">{data?.sprint_summary.length ? data.sprint_summary.map(s => <div key={s.id} className="rounded-xl border border-border bg-background p-3"><div className="flex items-start justify-between gap-3 text-sm"><div><p className="font-medium">{s.name} <span className="text-xs text-muted-foreground">· {s.project_name}</span></p><p className="mt-1 text-xs text-muted-foreground">{s.completed_issues} / {s.total_issues} completed · {s.status}</p></div><span className="font-semibold text-primary">{s.progress_percent == null ? 'No issues assigned' : `${s.progress_percent}%`}</span></div>{s.progress_percent != null && <div className="mt-2 h-1.5 w-full rounded bg-border"><div className="h-1.5 rounded bg-primary" style={{ width: `${s.progress_percent}%` }} /></div>}</div>) : <p className="text-sm text-muted-foreground">No sprint data available</p>}</div></section>
+        <section className="rounded-3xl border border-border bg-card p-6 shadow-glow"><h2 className="font-semibold text-foreground">Recent Activity</h2><div className="mt-4 space-y-2">{data?.recent_activity.length ? data.recent_activity.slice(0,4).map(a => <p key={a.id} className="text-sm"><span className="font-medium">{a.action}</span><span className="text-muted-foreground"> {a.details}</span></p>) : <p className="text-sm text-muted-foreground">No data available</p>}</div><p className="mt-4 text-sm text-muted-foreground">Duplicates flagged: {data?.duplicate_detection.flagged_issues ?? 0}</p></section>
       </div>
 
       <div className="mt-8 grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
@@ -156,8 +156,8 @@ export default function DashboardPage() {
           <p className="text-sm uppercase tracking-[0.3em] text-muted-foreground">AI Health</p>
           <div className="mt-4 flex items-center justify-between gap-4">
             <div>
-              <div className="text-4xl font-semibold text-foreground">{aiHealthScore}</div>
-              <div className="text-sm text-muted-foreground">Health score</div>
+              <div className="text-4xl font-semibold text-foreground">{aiHealthScore ?? '—'}</div>
+              <div className="text-sm text-muted-foreground">{aiHealthScore == null ? 'No data available' : 'Health score'}</div>
             </div>
             <div className="rounded-full bg-primary/10 px-3 py-1 text-sm font-medium text-primary">{aiReport.risk_level}</div>
           </div>

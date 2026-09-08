@@ -1,6 +1,6 @@
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 from fastapi import APIRouter, Depends
-from sqlalchemy import func
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 from ...db.database import get_db
 from ...models.collaboration import Activity
@@ -13,6 +13,28 @@ from ...services.duplicate_detection import find_duplicates
 from ...utils.auth import get_current_user
 
 router = APIRouter()
+
+COMPLETED_ISSUE_STATUSES = {"Resolved", "Verified", "Closed"}
+
+
+def serialize_utc(value: datetime | None) -> str | None:
+    if value is None:
+        return None
+    aware = value.replace(tzinfo=timezone.utc) if value.tzinfo is None else value.astimezone(timezone.utc)
+    return aware.isoformat().replace("+00:00", "Z")
+
+
+def visible_sprints(db: Session, current_user: User, visible_issue_ids: list[int]) -> list[Sprint]:
+    query = db.query(Sprint)
+    if current_user.role not in {"Admin", "Project Manager"}:
+        owned_project_ids = select(Project.id).where(Project.created_by == current_user.id)
+        query = query.filter(
+            (Sprint.project_id.in_(owned_project_ids))
+            | Sprint.id.in_(select(Issue.sprint_id).where(Issue.id.in_(visible_issue_ids), Issue.sprint_id.isnot(None)))
+        )
+    sprints = query.all()
+    status_order = {"Active": 0, "Planned": 1, "Completed": 2}
+    return sorted(sprints, key=lambda sprint: (status_order.get(sprint.status, 3), sprint.start_date or date.max, sprint.id), reverse=False)
 
 
 @router.get('', response_model=dict)
@@ -30,25 +52,47 @@ def get_dashboard(db: Session = Depends(get_db), current_user: User = Depends(ge
             | (Issue.reporter == current_user.id)
             | (Issue.assigned_to == current_user.id)
         )
-    visible_issue_ids = [i.id for i in issue_query.all()]
+    visible_issues = issue_query.all()
+    visible_issue_ids = [i.id for i in visible_issues]
     total_issues = len(visible_issue_ids)
     statuses = ['Open', 'Assigned', 'In Progress', 'In Review', 'Resolved', 'Verified', 'Closed']
-    issue_status = [{'status': s, 'count': db.query(func.count(Issue.id)).filter(Issue.status == s, Issue.id.in_(visible_issue_ids)).scalar() or 0} for s in statuses]
-    priority_distribution = [{'priority': p, 'count': db.query(func.count(Issue.id)).filter(Issue.priority == p, Issue.id.in_(visible_issue_ids)).scalar() or 0} for p in ['High','Medium','Low']]
-    severity_distribution = [{'severity': s, 'count': db.query(func.count(Issue.id)).filter(Issue.severity == s, Issue.id.in_(visible_issue_ids)).scalar() or 0} for s in ['Critical','High','Medium','Low']]
+    status_counts = dict(db.query(Issue.status, func.count(Issue.id)).filter(Issue.id.in_(visible_issue_ids)).group_by(Issue.status).all())
+    priority_counts = dict(db.query(Issue.priority, func.count(Issue.id)).filter(Issue.id.in_(visible_issue_ids)).group_by(Issue.priority).all())
+    severity_counts = dict(db.query(Issue.severity, func.count(Issue.id)).filter(Issue.id.in_(visible_issue_ids)).group_by(Issue.severity).all())
+    issue_status = [{'status': s, 'count': status_counts.get(s, 0)} for s in statuses]
+    priority_distribution = [{'priority': p, 'count': priority_counts.get(p, 0)} for p in ['High','Medium','Low']]
+    severity_distribution = [{'severity': s, 'count': severity_counts.get(s, 0)} for s in ['Critical','High','Medium','Low']]
     sprint_summary = []
-    for sprint in db.query(Sprint).order_by(Sprint.start_date.desc()).all():
-        issue_count = db.query(func.count(Issue.id)).filter(Issue.sprint_id == sprint.id, Issue.id.in_(visible_issue_ids)).scalar() or 0
-        resolved = db.query(func.count(Issue.id)).filter(Issue.sprint_id == sprint.id, Issue.status == 'Resolved', Issue.id.in_(visible_issue_ids)).scalar() or 0
-        sprint_summary.append({'id': sprint.id, 'name': sprint.name, 'status': sprint.status, 'issue_count': issue_count, 'resolved_count': resolved, 'progress': round((resolved / issue_count * 100) if issue_count else 0)})
-    recent_activity = [{'id': a.id, 'issue_id': a.issue_id, 'action': a.action, 'details': a.details, 'created_at': a.created_at.isoformat(), 'actor_id': a.actor_id} for a in db.query(Activity).filter(Activity.issue_id.in_(visible_issue_ids)).order_by(Activity.created_at.desc()).limit(10).all()]
-    today = datetime.utcnow().date(); seven_days_ago = today - timedelta(days=6)
+    for sprint in visible_sprints(db, current_user, visible_issue_ids):
+        sprint_items = [issue for issue in visible_issues if issue.sprint_id == sprint.id]
+        total_issues = len(sprint_items)
+        completed_issues = sum(issue.status in COMPLETED_ISSUE_STATUSES for issue in sprint_items)
+        progress_percent = round(completed_issues / total_issues * 100) if total_issues else None
+        sprint_summary.append({
+            'id': sprint.id,
+            'name': sprint.name,
+            'project_id': sprint.project_id,
+            'project_name': sprint.project.project_name if sprint.project else f'Project {sprint.project_id}',
+            'status': sprint.status,
+            'total_issues': total_issues,
+            'completed_issues': completed_issues,
+            'remaining_issues': total_issues - completed_issues,
+            'issue_count': total_issues,
+            'resolved_count': completed_issues,
+            'progress_percent': progress_percent,
+            'progress': progress_percent,
+            'start_date': sprint.start_date.isoformat() if sprint.start_date else None,
+            'end_date': sprint.end_date.isoformat() if sprint.end_date else None,
+        })
+    recent_activity = [{'id': a.id, 'issue_id': a.issue_id, 'action': a.action, 'details': a.details, 'created_at': serialize_utc(a.created_at), 'actor_id': a.actor_id} for a in db.query(Activity).filter(Activity.issue_id.in_(visible_issue_ids)).order_by(Activity.created_at.desc()).limit(10).all()]
+    now = datetime.now(timezone.utc)
+    today = now.date(); seven_days_ago = today - timedelta(days=6)
     rows = db.query(func.strftime('%Y-%m-%d', Issue.created_at).label('date'), func.count(Issue.id).label('count')).filter(Issue.created_at >= seven_days_ago, Issue.id.in_(visible_issue_ids)).group_by('date').all(); counts = {r.date:r.count for r in rows}
     open_issues = next(x['count'] for x in issue_status if x['status'] == 'Open')
     resolved_issues = next(x['count'] for x in issue_status if x['status'] == 'Resolved')
     critical_issues = next(x['count'] for x in severity_distribution if x['severity'] == 'Critical')
     duplicate_count = db.query(func.count(Issue.id)).filter(Issue.is_possible_duplicate.is_(True), Issue.id.in_(visible_issue_ids)).scalar() or 0
-    all_issues = db.query(Issue).filter(Issue.id.in_(visible_issue_ids)).all()
+    all_issues = visible_issues
     closed_issues = next(x['count'] for x in issue_status if x['status'] == 'Closed')
     category_distribution = [
         {'category': category or 'Uncategorized', 'count': count}
@@ -66,7 +110,7 @@ def get_dashboard(db: Session = Depends(get_db), current_user: User = Depends(ge
             'open': sum(issue.status == 'Open' for issue in assigned),
             'in_progress': sum(issue.status == 'In Progress' for issue in assigned),
             'resolved': sum(issue.status in {'Resolved', 'Verified', 'Closed'} for issue in assigned),
-            'risk': sum(issue.status not in {'Resolved', 'Verified', 'Closed'} and issue.created_at and (datetime.utcnow() - issue.created_at.replace(tzinfo=None)).days >= 7 for issue in assigned),
+            'risk': sum(issue.status not in {'Resolved', 'Verified', 'Closed'} and issue.created_at and (now.replace(tzinfo=None) - issue.created_at.replace(tzinfo=None)).days >= 7 for issue in assigned),
         })
     resolution_hours = []
     for issue in all_issues:
@@ -91,9 +135,9 @@ def get_dashboard(db: Session = Depends(get_db), current_user: User = Depends(ge
                 'similarity': match['similarity'],
             })
     similar_issues = sorted(similar_issues, key=lambda row: row['similarity'], reverse=True)[:5]
-    health_score = max(0, min(100, round(100 - (open_issues * 4) - (critical_issues * 6) - (duplicate_count * 3) + (resolved_issues * 2))))
+    health_score = None if not total_issues else max(0, min(100, round(100 - (open_issues * 4) - (critical_issues * 6) - (duplicate_count * 3) + (resolved_issues * 2))))
     ai_report = {
-        'summary': 'Issue health is stable with a moderate backlog and a manageable duplicate signal.',
+        'summary': 'No data available.' if not total_issues else 'Issue health is stable with a moderate backlog and a manageable duplicate signal.',
         'risk_level': 'Medium' if open_issues > 5 or duplicate_count > 0 else 'Low',
         'insights': [
             f'{open_issues} open issues are currently awaiting action.',

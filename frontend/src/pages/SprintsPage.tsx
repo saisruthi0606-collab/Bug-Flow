@@ -5,6 +5,21 @@ import { api } from '../lib/api'
 import type { Issue, Project, Sprint } from '../lib/types'
 
 const WORKFLOW = ['Open', 'Assigned', 'In Progress', 'In Review', 'Resolved', 'Verified', 'Closed'] as const
+const COMPLETED_STATUSES = new Set(['Resolved', 'Verified', 'Closed'])
+type SprintHealth = {
+  sprint_id: number
+  score: number | null
+  status: 'Healthy' | 'At Risk' | 'Critical' | 'No Data'
+  total_issues: number
+  completed_issues: number
+  remaining_issues: number
+  critical_remaining: number
+  high_remaining: number
+  reopened_issues: number
+  days_remaining: number | null
+  reasons: string[]
+  recommendation: string
+}
 
 export default function SprintsPage() {
   const qc = useQueryClient()
@@ -19,6 +34,14 @@ export default function SprintsPage() {
   const { data: issues = [] } = useQuery<Issue[]>({
     queryKey: ['issues'],
     queryFn: async () => (await api.get('/api/issues', { params: { size: 200 } })).data,
+  })
+  const { data: sprintHealth = {}, isLoading: isHealthLoading } = useQuery<Record<number, SprintHealth>>({
+    queryKey: ['sprint-health', sprints.map((sprint) => sprint.id)],
+    enabled: sprints.length > 0,
+    queryFn: async () => {
+      const entries = await Promise.all(sprints.map(async (sprint) => [sprint.id, (await api.get<SprintHealth>(`/api/sprints/${sprint.id}/health`)).data] as const))
+      return Object.fromEntries(entries)
+    },
   })
 
   const blank = { name: '', goal: '', start_date: '', end_date: '', status: 'Planned', project_id: '' }
@@ -104,8 +127,10 @@ export default function SprintsPage() {
               ) : (
                 sprints.map((sprint) => {
                   const sprintItems = sprintIssues.get(sprint.id) || []
-                  const resolvedCount = sprintItems.filter((issue) => issue.status === 'Resolved').length
+                  const resolvedCount = sprintItems.filter((issue) => COMPLETED_STATUSES.has(issue.status)).length
                   const progress = sprintItems.length ? Math.round((resolvedCount / sprintItems.length) * 100) : 0
+                  const health = sprintHealth[sprint.id]
+                  const healthTone = health?.status === 'Healthy' ? 'text-emerald-500' : health?.status === 'Critical' ? 'text-rose-500' : 'text-amber-500'
 
                   return (
                     <div key={sprint.id} className="rounded-2xl border border-border bg-background p-4">
@@ -144,6 +169,13 @@ export default function SprintsPage() {
                       </div>
                       <div className="mt-3 text-xs text-muted-foreground">
                         {sprint.start_date} to {sprint.end_date} · {sprint.status}
+                      </div>
+                      <div className="mt-4 rounded-2xl border border-border bg-card p-4">
+                        <div className="flex items-start justify-between gap-3">
+                          <div><p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Sprint Health</p><p className={`mt-1 text-2xl font-semibold ${healthTone}`}>{isHealthLoading ? '...' : health?.score == null ? 'No Data' : `${health.score} / 100`}</p></div>
+                          <p className={`text-sm font-medium ${healthTone}`}>{health?.status || 'Loading'}</p>
+                        </div>
+                        {health && <><div className="mt-3 grid grid-cols-2 gap-2 text-xs text-muted-foreground sm:grid-cols-4"><span>{health.completed_issues} completed</span><span>{health.remaining_issues} remaining</span><span>{health.critical_remaining + health.high_remaining} critical/high</span><span>{health.days_remaining == null ? 'Deadline unavailable' : `${Math.max(0, health.days_remaining)} days left`}</span></div>{health.status !== 'No Data' && <><p className="mt-3 text-xs font-semibold">Why?</p><ul className="mt-1 space-y-1 text-xs text-muted-foreground">{health.reasons.slice(0, 3).map((reason) => <li key={reason}>• {reason}</li>)}</ul><p className="mt-3 text-xs text-muted-foreground"><span className="font-semibold text-foreground">Recommendation:</span> {health.recommendation}</p></>}</>}
                       </div>
                     </div>
                   )

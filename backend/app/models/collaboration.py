@@ -1,4 +1,4 @@
-from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy import Column, DateTime, ForeignKey, Index, Integer, String, Text
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from ..db.database import Base
@@ -6,6 +6,7 @@ from ..db.database import Base
 
 class Comment(Base):
     __tablename__ = "comments"
+    __table_args__ = (Index("ix_comments_issue_created", "issue_id", "created_at"),)
     id = Column(Integer, primary_key=True, index=True)
     issue_id = Column(Integer, ForeignKey("issues.id"), nullable=False, index=True)
     author_id = Column(Integer, ForeignKey("users.id"), nullable=False)
@@ -38,6 +39,7 @@ class Attachment(Base):
 
 class Activity(Base):
     __tablename__ = "activities"
+    __table_args__ = (Index("ix_activities_issue_created", "issue_id", "created_at"),)
     id = Column(Integer, primary_key=True, index=True)
     issue_id = Column(Integer, ForeignKey("issues.id"), nullable=False, index=True)
     actor_id = Column(Integer, ForeignKey("users.id"), nullable=True)

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import Layout from '../components/Layout'
-import { api } from '../lib/api'
+import { api, formatApiTimestamp } from '../lib/api'
 import type { ImpactPrediction, Issue, Project, Sprint, UserListItem } from '../lib/types'
 const severityClass: Record<string,string> = { Critical:'bg-rose-500/15 text-rose-500', High:'bg-orange-500/15 text-orange-500', Medium:'bg-amber-500/15 text-amber-500', Low:'bg-sky-500/15 text-sky-500' }
 export default function IssuesPage() {
@@ -86,8 +86,8 @@ export default function IssuesPage() {
                       <span>🤖 AI Fix Impact</span><span className="rounded-md border border-primary/20 bg-background/40 px-2 py-0.5 text-xs font-medium">Analyze</span>
                     </button>
                     <div>Attachments: {issue.attachment_count ?? 0} • Comments: {issue.comment_count ?? 0}</div>
-                    <div className="mt-1">Created: {new Date(issue.created_at).toLocaleString()}</div>
-                    <div>Updated: {new Date(issue.updated_at).toLocaleString()}</div>
+                    <div className="mt-1">Created: {formatApiTimestamp(issue.created_at)}</div>
+                    <div>Updated: {formatApiTimestamp(issue.updated_at)}</div>
                   </div>
                   <div className="mt-2 flex gap-2">
                     <a className="rounded-md bg-background px-3 py-1 text-sm" href={`/issues/${issue.id}`}>View</a>

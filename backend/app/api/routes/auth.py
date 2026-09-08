@@ -18,7 +18,7 @@ def register(user: UserCreate, db: Session = Depends(get_db)):
         full_name=user.full_name,
         email=str(user.email),
         password_hash=get_password_hash(user.password),
-        role=user.role,
+        role="Reporter",
     )
     db.add(db_user)
     db.commit()
@@ -29,7 +29,7 @@ def register(user: UserCreate, db: Session = Depends(get_db)):
 @router.post("/login", response_model=Token)
 def login(user: UserLogin, db: Session = Depends(get_db)):
     db_user = db.query(User).filter(User.email == str(user.email)).first()
-    if not db_user or not verify_password(user.password, db_user.password_hash):
+    if not db_user or not db_user.is_active or not verify_password(user.password, db_user.password_hash):
         raise HTTPException(status_code=401, detail="Invalid credentials")
     db_user.last_login_at = datetime.now(timezone.utc)
     db.commit()

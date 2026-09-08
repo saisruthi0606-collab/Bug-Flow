@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import Layout from '../components/Layout'
-import { api } from '../lib/api'
+import { api, formatApiTimestamp } from '../lib/api'
 const API_URL = 'http://localhost:8000'
 export default function ProfilePage() {
   const [user, setUser] = useState<any>(null)
@@ -58,8 +58,8 @@ export default function ProfilePage() {
           </div>
           <div className="mt-6 space-y-3 text-sm">
             <p><span className="text-muted-foreground">Email</span><br />{user.email}</p>
-            <p><span className="text-muted-foreground">Member since</span><br />{new Date(user.created_at).toLocaleDateString()}</p>
-            <p><span className="text-muted-foreground">Last login</span><br />{user.last_login_at ? new Date(user.last_login_at).toLocaleString() : 'Not recorded'}</p>
+            <p><span className="text-muted-foreground">Member since</span><br />{formatApiTimestamp(user.created_at, false)}</p>
+            <p><span className="text-muted-foreground">Last login</span><br />{formatApiTimestamp(user.last_login_at)}</p>
           </div>
         </section>
 

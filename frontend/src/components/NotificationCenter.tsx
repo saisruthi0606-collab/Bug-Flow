@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Bell, Bot, CheckCheck, CircleAlert, MessageSquare, TicketCheck, Trash } from 'lucide-react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
-import { api } from '../lib/api'
+import { api, formatApiTimestamp } from '../lib/api'
 
 type Notification = { id:number; kind:string; title:string; message:string; is_read:boolean; created_at:string }
 const icons: Record<string, any> = { 'Issue Resolved': TicketCheck, 'Comment Added': MessageSquare, 'Critical Bug Created': CircleAlert, 'AI Recommendation Generated': Bot }
@@ -55,7 +55,7 @@ export default function NotificationCenter(){
                         <button onClick={() => del(item.id)} className="text-xs text-rose-500"><Trash size={14} /></button>
                       </div>
                     </div>
-                    <div className="mt-2 text-xs text-muted-foreground">{new Date(item.created_at).toLocaleString()}</div>
+                    <div className="mt-2 text-xs text-muted-foreground">{formatApiTimestamp(item.created_at)}</div>
                   </div>
                 </div>
               )

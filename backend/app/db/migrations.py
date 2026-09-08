@@ -15,3 +15,14 @@ def initialize_database() -> None:
             for name, definition in columns.items():
                 if name not in existing:
                     connection.execute(text(f"ALTER TABLE {table} ADD COLUMN {name} {definition}"))
+        indexes = (
+            "CREATE INDEX IF NOT EXISTS ix_issues_project_status ON issues (project_id, status)",
+            "CREATE INDEX IF NOT EXISTS ix_issues_assignee_status ON issues (assigned_to, status)",
+            "CREATE INDEX IF NOT EXISTS ix_issues_sprint_status ON issues (sprint_id, status)",
+            "CREATE INDEX IF NOT EXISTS ix_issues_created_at ON issues (created_at)",
+            "CREATE INDEX IF NOT EXISTS ix_comments_issue_created ON comments (issue_id, created_at)",
+            "CREATE INDEX IF NOT EXISTS ix_activities_issue_created ON activities (issue_id, created_at)",
+            "CREATE INDEX IF NOT EXISTS ix_notifications_user_read_created ON notifications (user_id, is_read, created_at)",
+        )
+        for statement in indexes:
+            connection.execute(text(statement))

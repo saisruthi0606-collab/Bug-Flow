@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import Layout from "../components/Layout";
-import { api } from "../lib/api";
+import { api, formatApiTimestamp } from "../lib/api";
 
 interface Activity {
   id: number;
@@ -424,9 +424,7 @@ export default function SettingsPage() {
                       {activity.actor_name
                         ? `${activity.actor_name} • `
                         : ""}
-                      {new Date(
-                        activity.created_at
-                      ).toLocaleString()}
+                      {formatApiTimestamp(activity.created_at)}
                     </p>
                   </div>
                 </div>
