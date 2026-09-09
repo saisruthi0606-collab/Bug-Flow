@@ -86,6 +86,13 @@ class ProRiskTests(unittest.TestCase):
 
 
 class ProAssistantUploadTests(unittest.TestCase):
+    def ensure_upload_tester(self, client):
+        registration = client.post(
+            "/api/auth/register",
+            json={"full_name": "PRO Upload Tester", "email": "pro-upload-tester@example.com", "password": "password123", "role": "Reporter"},
+        )
+        self.assertIn(registration.status_code, {200, 400})
+
     def test_image_assistant_requires_authentication(self):
         response = TestClient(app).post(
             "/api/chat/ask-image",
@@ -111,6 +118,7 @@ class ProAssistantUploadTests(unittest.TestCase):
 
     def test_image_assistant_rejects_malformed_image_content(self):
         client = TestClient(app)
+        self.ensure_upload_tester(client)
         login = client.post("/api/auth/login", json={"email": "pro-upload-tester@example.com", "password": "password123"})
         self.assertEqual(login.status_code, 200, login.text)
         response = client.post(

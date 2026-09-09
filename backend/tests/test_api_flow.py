@@ -2,6 +2,8 @@ import unittest
 import json
 from fastapi.testclient import TestClient
 from app.main import app
+from app.db.database import SessionLocal
+from app.models.user import User
 
 
 class ApiFlowTests(unittest.TestCase):
@@ -14,6 +16,13 @@ class ApiFlowTests(unittest.TestCase):
         if reg.status_code == 400:
             # user already exists, that's fine
             pass
+        db = SessionLocal()
+        try:
+            test_user = db.query(User).filter(User.email == self.email).first()
+            test_user.role = "Admin"
+            db.commit()
+        finally:
+            db.close()
         self.token = self.login()
         # ensure the admin has a project for issue tests
         projects = self.client.get("/api/projects", headers=self.auth(self.token)).json()
